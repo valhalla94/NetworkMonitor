@@ -1,16 +1,42 @@
-# React + Vite
+# Frontend – Network Monitor
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+This directory contains the **React + Vite** frontend for the Network Monitor application. It provides a premium, glass‑morphism UI that displays real‑time network status, host metrics, and public IP# Frontend – Network Monitor
 
-Currently, two official plugins are available:
+This directory contains the **React + Vite** frontend for the Network Monitor application. It provides a premium, glass‑morphism UI that displays real‑time network status, host metrics, and public IP monitoring.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## Features
+- Modern React UI with Vite for fast hot‑module replacement.
+- Tailwind‑based styling with custom glass panels.
+{{ ... }}
+- Open the app in a browser and verify the dashboard loads.
+- Check the **Public IP** card shows the current IP, last checked time, and duration badge.
+- Use the Settings page to log in with the admin password.
 
-## React Compiler
+---
+*Happy monitoring!*ion
+```bash
+npm run build   # creates a production build in ./dist
+```
+The Dockerfile copies the `dist` folder into an Nginx image, which is used in the Docker Compose setup.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Environment Variables
+The frontend reads variables prefixed with `VITE_` at **build time**:
+- `VITE_API_URL` – Base URL for the backend API (default `/api`).
+- `VITE_ADMIN_PASSWORD` – Admin password for the Settings page.
 
-## Expanding the ESLint configuration
+These are defined in `docker-compose.yml` under the `frontend` service. If you change them, rebuild the image (`docker-compose up --build`).
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+## Running with Docker Compose
+The full application (frontend, backend, InfluxDB) can be started with:
+```bash
+docker-compose up -d --build
+```
+Then open the dashboard at `http://<NAS‑IP>:3200` (or the port you configured).
+
+## Testing
+- Open the app in a browser and verify the dashboard loads.
+- Check the **Public IP** card shows the current IP, last checked time, and duration badge.
+- Use the Settings page to log in with the admin password.
+
+---
+*Happy monitoring!*
