@@ -154,10 +154,11 @@ The frontend will be available at `http://localhost:5173`.
 This project is optimized for deployment on Synology NAS using Container Manager.
 See [DEPLOY_SYNOLOGY.md](./DEPLOY_SYNOLOGY.md) for detailed instructions.
 
-## �📝 License
+## 📝 License
 
 This project is open source. Feel free to modify and distribute.
 
 ## Frontend preview
 
 ![Frontend UI](UI.jpg)
+
