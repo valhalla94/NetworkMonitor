@@ -79,3 +79,8 @@ See [DEPLOY_SYNOLOGY.md](./DEPLOY_SYNOLOGY.md) for detailed instructions.
 ## 📝 License
 
 This project is open source. Feel free to modify and distribute.
+
+## Frontend preview
+
+![Frontend UI](file:///c:/Users/Sorint/OneDrive%20-%20Sorint.LAB/Documents/Docker/Network%20Monitor/UI.jpg)
+
