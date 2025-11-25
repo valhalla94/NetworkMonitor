@@ -20,11 +20,33 @@ def check_public_ip():
             ip_address = response.json().get('ip')
             logger.info(f"Public IP: {ip_address}")
             
-            point = (
-                Point("public_ip_history")
-                .field("ip_address", ip_address)
-            )
-            write_api.write(bucket=INFLUXDB_BUCKET, org=INFLUXDB_ORG, record=point)
+            # Check the last known IP from InfluxDB
+            from database import query_api
+            query = f'''
+            from(bucket: "{INFLUXDB_BUCKET}")
+              |> range(start: -30d)
+              |> filter(fn: (r) => r["_measurement"] == "public_ip_history")
+              |> filter(fn: (r) => r["_field"] == "ip_address")
+              |> last()
+            '''
+            result = query_api.query(org=INFLUXDB_ORG, query=query)
+            
+            last_ip = None
+            for table in result:
+                for record in table.records:
+                    last_ip = record.get_value()
+                    break
+            
+            # Only write to InfluxDB if the IP has changed
+            if last_ip != ip_address:
+                logger.info(f"Public IP changed from {last_ip} to {ip_address}")
+                point = (
+                    Point("public_ip_history")
+                    .field("ip_address", ip_address)
+                )
+                write_api.write(bucket=INFLUXDB_BUCKET, org=INFLUXDB_ORG, record=point)
+            else:
+                logger.info(f"Public IP unchanged: {ip_address}")
         else:
             logger.error(f"Failed to get public IP: {response.status_code}")
     except Exception as e:
