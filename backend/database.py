@@ -27,3 +27,39 @@ INFLUXDB_BUCKET = os.getenv("INFLUXDB_BUCKET", "network_monitor")
 influx_client = InfluxDBClient(url=INFLUXDB_URL, token=INFLUXDB_TOKEN, org=INFLUXDB_ORG)
 write_api = influx_client.write_api(write_options=SYNCHRONOUS)
 query_api = influx_client.query_api()
+
+def migrate_db():
+    """
+    Checks for missing columns and adds them if necessary.
+    This is a simple migration mechanism for SQLite.
+    """
+    from sqlalchemy import text
+    from sqlalchemy.exc import OperationalError
+    import logging
+    
+    logger = logging.getLogger(__name__)
+    db = SessionLocal()
+    try:
+        # Check if hosts table exists first
+        try:
+            db.execute(text("SELECT 1 FROM hosts LIMIT 1"))
+        except OperationalError:
+             # Table doesn't exist yet, create_all will handle it
+             return
+
+        # Check if average_latency column exists
+        try:
+            db.execute(text("SELECT average_latency FROM hosts LIMIT 1"))
+        except OperationalError:
+            logger.info("Column 'average_latency' missing in 'hosts' table. Adding it...")
+            try:
+                db.execute(text("ALTER TABLE hosts ADD COLUMN average_latency FLOAT"))
+                db.commit()
+                logger.info("Column 'average_latency' added successfully.")
+            except Exception as e:
+                logger.error(f"Failed to add column 'average_latency': {e}")
+                db.rollback()
+    except Exception as e:
+        logger.error(f"Migration check failed: {e}")
+    finally:
+        db.close()

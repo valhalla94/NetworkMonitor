@@ -8,6 +8,7 @@ import scheduler
 from database import get_db, query_api, INFLUXDB_BUCKET, INFLUXDB_ORG
 
 # Create tables
+database.migrate_db()
 models.Base.metadata.create_all(bind=database.engine)
 
 app = FastAPI(title="Network Monitor API")

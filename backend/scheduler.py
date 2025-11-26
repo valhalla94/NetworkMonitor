@@ -76,40 +76,76 @@ def ping_host(host_id: int, ip_address: str, name: str):
 
 def update_jobs():
     """
-    Syncs the scheduler jobs with the database.
-    This is a naive implementation that removes all jobs and re-adds them.
-    For production, a diff-based approach would be better, but this is sufficient for now.
+    Syncs the scheduler jobs with the database using a diff-based approach.
+    Only adds/removes/updates jobs that have changed.
     """
-    scheduler.remove_all_jobs()
     db: Session = SessionLocal()
     try:
+        # Get all enabled hosts from DB
         hosts = db.query(HostDB).filter(HostDB.enabled == True).all()
-        for host in hosts:
-            scheduler.add_job(
-                ping_host,
-                'interval',
-                seconds=host.interval,
-                args=[host.id, host.ip_address, host.name],
-                id=f"ping_{host.id}",
-                replace_existing=True
-            )
-        logger.info(f"Updated scheduler with {len(hosts)} jobs.")
+        enabled_host_ids = {h.id: h for h in hosts}
+        
+        # Get all current ping jobs
+        current_jobs = scheduler.get_jobs()
+        ping_jobs = {job.id: job for job in current_jobs if job.id.startswith('ping_')}
+        
+        # Track which hosts we've processed from the existing jobs
+        processed_host_ids = set()
+        
+        # 1. Remove jobs for hosts that are no longer enabled or exist
+        # 2. Update jobs if interval changed
+        for job_id, job in ping_jobs.items():
+            try:
+                host_id = int(job_id.replace('ping_', ''))
+                
+                if host_id not in enabled_host_ids:
+                    scheduler.remove_job(job_id)
+                    logger.info(f"Removed job for host {host_id}")
+                else:
+                    host = enabled_host_ids[host_id]
+                    processed_host_ids.add(host_id)
+                    
+                    # Check if interval changed
+                    # job.trigger.interval is a timedelta
+                    current_interval = job.trigger.interval.total_seconds()
+                    if current_interval != host.interval:
+                        scheduler.reschedule_job(job_id, trigger='interval', seconds=host.interval)
+                        logger.info(f"Updated interval for host {host.name} to {host.interval}s")
+            except ValueError:
+                continue # Not a standard ping job ID
+                
+        # 3. Add new jobs for hosts that don't have one yet
+        for host_id, host in enabled_host_ids.items():
+            if host_id not in processed_host_ids:
+                scheduler.add_job(
+                    ping_host,
+                    'interval',
+                    seconds=host.interval,
+                    args=[host.id, host.ip_address, host.name],
+                    id=f"ping_{host.id}",
+                    replace_existing=True
+                )
+                logger.info(f"Added job for host {host.name}")
+                
+        logger.info(f"Scheduler synced. Active ping jobs: {len(enabled_host_ids)}")
+        
+    except Exception as e:
+        logger.error(f"Error updating jobs: {e}")
     finally:
         db.close()
 
-    # Add public IP check job
-    scheduler.add_job(
-        check_public_ip,
-        'interval',
-        minutes=30,
-        id='check_public_ip',
-        replace_existing=True
-    )
-    logger.info("Added public IP check job.")
+    # Ensure static jobs exist
+    if not scheduler.get_job('check_public_ip'):
+        scheduler.add_job(
+            check_public_ip,
+            'interval',
+            minutes=30,
+            id='check_public_ip',
+            replace_existing=True
+        )
+        logger.info("Added public IP check job.")
 
-    scheduler.start()
-    update_jobs()
-    
+
     # Add average latency calculation job
     scheduler.add_job(
         calculate_average_latency,
@@ -120,8 +156,14 @@ def update_jobs():
     )
     logger.info("Added average latency calculation job.")
     
-    # Run immediately on startup
+    # Run immediately
     scheduler.add_job(calculate_average_latency)
+
+def start_scheduler():
+    update_jobs()
+    if not scheduler.running:
+        scheduler.start()
+        logger.info("Scheduler started")
 
 def calculate_average_latency():
     """
