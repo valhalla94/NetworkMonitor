@@ -90,6 +90,7 @@ def get_metrics(host_id: int, range: str = "-1h"):
     results = []
     total_pings = 0
     successful_pings = 0
+    total_latency = 0.0
     
     for table in result:
         for record in table.records:
@@ -97,6 +98,7 @@ def get_metrics(host_id: int, range: str = "-1h"):
             total_pings += 1
             if val >= 0:
                 successful_pings += 1
+                total_latency += val
             
             results.append({
                 "time": record.get_time(),
@@ -104,10 +106,12 @@ def get_metrics(host_id: int, range: str = "-1h"):
             })
             
     uptime = (successful_pings / total_pings * 100) if total_pings > 0 else 0
+    avg_latency = (total_latency / successful_pings) if successful_pings > 0 else 0
     
     return {
         "data": results,
-        "uptime": uptime
+        "uptime": uptime,
+        "avg_latency": avg_latency
     }
 
 @app.get("/status")

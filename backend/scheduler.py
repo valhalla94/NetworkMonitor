@@ -107,6 +107,64 @@ def update_jobs():
     )
     logger.info("Added public IP check job.")
 
-def start_scheduler():
     scheduler.start()
     update_jobs()
+    
+    # Add average latency calculation job
+    scheduler.add_job(
+        calculate_average_latency,
+        'interval',
+        hours=6,
+        id='calculate_average_latency',
+        replace_existing=True
+    )
+    logger.info("Added average latency calculation job.")
+    
+    # Run immediately on startup
+    scheduler.add_job(calculate_average_latency)
+
+def calculate_average_latency():
+    """
+    Calculates the average latency for each host over the last 6 hours
+    and updates the database.
+    """
+    logger.info("Starting average latency calculation...")
+    db: Session = SessionLocal()
+    try:
+        hosts = db.query(HostDB).filter(HostDB.enabled == True).all()
+        for host in hosts:
+            try:
+                # Query InfluxDB for mean latency over last 6 hours
+                query = f'''
+                from(bucket: "{INFLUXDB_BUCKET}")
+                  |> range(start: -6h)
+                  |> filter(fn: (r) => r["_measurement"] == "ping_result")
+                  |> filter(fn: (r) => r["host_id"] == "{host.id}")
+                  |> filter(fn: (r) => r["_field"] == "latency")
+                  |> filter(fn: (r) => r["_value"] >= 0)
+                  |> mean()
+                '''
+                result = query_api.query(org=INFLUXDB_ORG, query=query)
+                
+                avg_latency = None
+                for table in result:
+                    for record in table.records:
+                        avg_latency = record.get_value()
+                        break
+                
+                if avg_latency is not None:
+                    host.average_latency = avg_latency
+                    logger.info(f"Updated average latency for {host.name}: {avg_latency:.2f}ms")
+                else:
+                    logger.info(f"No latency data found for {host.name} in last 6h")
+                    
+            except Exception as e:
+                logger.error(f"Error calculating latency for {host.name}: {e}")
+        
+        db.commit()
+        logger.info("Average latency calculation completed.")
+        
+    except Exception as e:
+        logger.error(f"Error in calculate_average_latency: {e}")
+    finally:
+        db.close()

@@ -9,6 +9,7 @@ const Dashboard = () => {
     const [selectedHost, setSelectedHost] = useState(null);
     const [metrics, setMetrics] = useState([]);
     const [uptime, setUptime] = useState(0);
+    const [avgLatency, setAvgLatency] = useState(0);
     const [timeRange, setTimeRange] = useState('-1h');
     const [networkStatus, setNetworkStatus] = useState({ status: 'UNKNOWN', reachable: 0, total: 0 });
     const [publicIpHistory, setPublicIpHistory] = useState([]);
@@ -101,6 +102,7 @@ const Dashboard = () => {
             }));
             setMetrics(formattedData);
             setUptime(response.data.uptime);
+            setAvgLatency(response.data.avg_latency);
         } catch (error) {
             console.error("Error fetching metrics:", error);
         }
@@ -191,6 +193,11 @@ const Dashboard = () => {
                                 <div>
                                     <h3 className="font-bold text-lg text-white group-hover:text-blue-400 transition-colors">{host.name}</h3>
                                     <p className="text-sm text-slate-400 font-mono">{host.ip_address}</p>
+                                    {host.average_latency !== null && (
+                                        <p className="text-xs text-slate-500 mt-1">
+                                            Avg (6h): <span className="text-blue-300 font-medium">{host.average_latency.toFixed(2)}ms</span>
+                                        </p>
+                                    )}
                                 </div>
                             </div>
                             <div className={`w-3 h-3 rounded-full shadow-lg shadow-current ${host.enabled ? 'bg-emerald-400 text-emerald-400' : 'bg-rose-400 text-rose-400'}`}></div>
@@ -213,6 +220,10 @@ const Dashboard = () => {
                                     Uptime:
                                     <span className={`font-bold px-2 py-0.5 rounded-md ${uptime >= 99 ? 'bg-emerald-500/20 text-emerald-400' : uptime >= 90 ? 'bg-yellow-500/20 text-yellow-400' : 'bg-rose-500/20 text-rose-400'}`}>
                                         {uptime.toFixed(2)}%
+                                    </span>
+                                    <span className="ml-4">Avg Latency:</span>
+                                    <span className="font-bold px-2 py-0.5 rounded-md bg-blue-500/20 text-blue-400">
+                                        {avgLatency.toFixed(2)}ms
                                     </span>
                                 </p>
                             </div>

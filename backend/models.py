@@ -11,6 +11,7 @@ class HostDB(Base):
     ip_address = Column(String, unique=True, index=True)
     interval = Column(Integer, default=60) # Ping interval in seconds
     enabled = Column(Boolean, default=True)
+    average_latency = Column(Float, nullable=True)
 
 # Pydantic Models
 class HostBase(BaseModel):
@@ -18,6 +19,7 @@ class HostBase(BaseModel):
     ip_address: str
     interval: int = 60
     enabled: bool = True
+    average_latency: float | None = None
 
 class HostCreate(HostBase):
     pass
