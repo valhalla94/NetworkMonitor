@@ -59,6 +59,19 @@ def migrate_db():
             except Exception as e:
                 logger.error(f"Failed to add column 'average_latency': {e}")
                 db.rollback()
+
+        # Check if port column exists
+        try:
+            db.execute(text("SELECT port FROM hosts LIMIT 1"))
+        except OperationalError:
+            logger.info("Column 'port' missing in 'hosts' table. Adding it...")
+            try:
+                db.execute(text("ALTER TABLE hosts ADD COLUMN port INTEGER"))
+                db.commit()
+                logger.info("Column 'port' added successfully.")
+            except Exception as e:
+                logger.error(f"Failed to add column 'port': {e}")
+                db.rollback()
     except Exception as e:
         logger.error(f"Migration check failed: {e}")
     finally:
