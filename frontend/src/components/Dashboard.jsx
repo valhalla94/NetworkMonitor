@@ -183,7 +183,7 @@ const Dashboard = () => {
 
                 {/* Public IP Card */}
                 <div className="glass-panel p-6 rounded-2xl border-l-4 border-l-blue-500 bg-blue-900/10 relative overflow-hidden group">
-                    <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                    <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity pointer-events-none">
                         <Globe className="w-24 h-24 text-blue-400" />
                     </div>
 
@@ -233,7 +233,7 @@ const Dashboard = () => {
 
                 {/* Speed Test Card */}
                 <div className="glass-panel p-6 rounded-2xl border-l-4 border-l-violet-500 bg-violet-900/10 relative overflow-hidden group">
-                    <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                    <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity pointer-events-none">
                         <Gauge className="w-24 h-24 text-violet-400" />
                     </div>
 
@@ -247,7 +247,7 @@ const Dashboard = () => {
                         <button
                             onClick={handleRunSpeedTest}
                             disabled={isSpeedTestRunning}
-                            className={`px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all shadow-lg ${isSpeedTestRunning
+                            className={`px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all shadow-lg cursor-pointer ${isSpeedTestRunning
                                 ? 'bg-violet-500/10 border border-violet-500/20 text-violet-400 cursor-not-allowed'
                                 : 'bg-violet-600 hover:bg-violet-500 text-white shadow-violet-500/20 hover:shadow-violet-500/40 border border-transparent'
                                 }`}
@@ -300,7 +300,7 @@ const Dashboard = () => {
 
                 {/* Quick Ping Card */}
                 <div className="glass-panel p-6 rounded-2xl border-l-4 border-l-amber-500 bg-amber-900/10 relative overflow-hidden group">
-                    <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                    <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity pointer-events-none">
                         <Search className="w-24 h-24 text-amber-400" />
                     </div>
 
@@ -323,7 +323,7 @@ const Dashboard = () => {
                         <button
                             type="submit"
                             disabled={quickPingLoading || !quickPingTarget}
-                            className="bg-amber-600 hover:bg-amber-500 disabled:opacity-50 disabled:cursor-not-allowed text-white px-4 py-2 rounded-lg transition-all flex items-center gap-2 font-medium"
+                            className="bg-amber-600 hover:bg-amber-500 disabled:opacity-50 disabled:cursor-not-allowed text-white px-4 py-2 rounded-lg transition-all flex items-center gap-2 font-medium cursor-pointer"
                         >
                             {quickPingLoading ? (
                                 <>
@@ -371,7 +371,7 @@ const Dashboard = () => {
 
                 {/* Network Health Card */}
                 <div className="glass-panel p-6 rounded-2xl border-l-4 border-l-cyan-500 bg-cyan-900/10 relative overflow-hidden group">
-                    <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                    <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity pointer-events-none">
                         <Zap className="w-24 h-24 text-cyan-400" />
                     </div>
 
