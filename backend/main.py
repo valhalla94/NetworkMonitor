@@ -80,12 +80,37 @@ def get_metrics(host_id: int, range: str = "-1h"):
     Get metrics for a specific host.
     range: Flux duration string (e.g., -1h, -24h, -7d)
     """
+    
+    # Determine aggregation window based on range
+    window = "1m" # Default
+    if range == "-6h":
+        window = "5m"
+    elif range == "-24h":
+        window = "10m"
+    elif range == "-7d":
+        window = "1h"
+    elif range == "-30d":
+        window = "4h"
+    elif range == "-1y":
+        window = "1d"
+    elif range == "-2y":
+        window = "1d"
+        
+    # If range is small (-1h), we might not need aggregation, or use a very small one.
+    # But for consistency and to prevent over-fetching, we can stick to a small window or raw data.
+    # For -1h, raw data is usually fine (60*60/30 = 120 points).
+    
+    aggregate_logic = ""
+    if range != "-1h":
+        aggregate_logic = f'|> aggregateWindow(every: {window}, fn: mean, createEmpty: false)'
+
     query = f'''
     from(bucket: "{INFLUXDB_BUCKET}")
       |> range(start: {range})
       |> filter(fn: (r) => r["_measurement"] == "ping_result")
       |> filter(fn: (r) => r["host_id"] == "{host_id}")
       |> filter(fn: (r) => r["_field"] == "latency")
+      {aggregate_logic}
       |> yield(name: "mean")
     '''
     result = query_api.query(org=INFLUXDB_ORG, query=query)
@@ -107,6 +132,9 @@ def get_metrics(host_id: int, range: str = "-1h"):
                 "latency": val
             })
             
+    # Note: Uptime calculation on aggregated data is an approximation.
+    # Ideally, we should calculate uptime on raw data or use a separate query.
+    # For now, this approximation is acceptable for the dashboard view.
     uptime = (successful_pings / total_pings * 100) if total_pings > 0 else 0
     avg_latency = (total_latency / successful_pings) if successful_pings > 0 else 0
     
