@@ -271,7 +271,10 @@ const Dashboard = () => {
                                 </div>
                                 <div>
                                     <h3 className="font-bold text-lg text-white group-hover:text-blue-400 transition-colors">{host.name}</h3>
-                                    <p className="text-sm text-slate-400 font-mono">{host.ip_address}</p>
+                                    <p className="text-sm text-slate-400 font-mono">
+                                        {host.ip_address}
+                                        {host.port && <span className="text-slate-500 ml-1">:{host.port}</span>}
+                                    </p>
                                     {host.average_latency !== null && (
                                         <p className="text-xs text-slate-500 mt-1">
                                             Avg (6h): <span className="text-blue-300 font-medium">{host.average_latency.toFixed(2)}ms</span>

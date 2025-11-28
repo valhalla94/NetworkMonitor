@@ -5,16 +5,24 @@ import { Plus, Trash2, Globe, Clock, Edit2, X, Check } from 'lucide-react';
 const HostManager = ({ onHostAdded, hosts, onHostDeleted }) => {
     const [name, setName] = useState('');
     const [ip, setIp] = useState('');
+    const [port, setPort] = useState('');
     const [interval, setInterval] = useState(30);
     const [editingHost, setEditingHost] = useState(null);
-    const [editForm, setEditForm] = useState({ name: '', ip_address: '', interval: 30, enabled: true });
+    const [editForm, setEditForm] = useState({ name: '', ip_address: '', port: '', interval: 30, enabled: true });
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
-            await createHost({ name, ip_address: ip, interval: parseInt(interval), enabled: true });
+            await createHost({
+                name,
+                ip_address: ip,
+                port: port ? parseInt(port) : null,
+                interval: parseInt(interval),
+                enabled: true
+            });
             setName('');
             setIp('');
+            setPort('');
             setInterval(30);
             if (onHostAdded) onHostAdded();
         } catch (error) {
@@ -39,6 +47,7 @@ const HostManager = ({ onHostAdded, hosts, onHostDeleted }) => {
         setEditForm({
             name: host.name,
             ip_address: host.ip_address,
+            port: host.port || '',
             interval: host.interval,
             enabled: host.enabled
         });
@@ -46,12 +55,16 @@ const HostManager = ({ onHostAdded, hosts, onHostDeleted }) => {
 
     const cancelEdit = () => {
         setEditingHost(null);
-        setEditForm({ name: '', ip_address: '', interval: 30, enabled: true });
+        setEditForm({ name: '', ip_address: '', port: '', interval: 30, enabled: true });
     };
 
     const saveEdit = async (hostId) => {
         try {
-            await updateHost(hostId, editForm);
+            const dataToUpdate = {
+                ...editForm,
+                port: editForm.port ? parseInt(editForm.port) : null
+            };
+            await updateHost(hostId, dataToUpdate);
             setEditingHost(null);
             if (onHostAdded) onHostAdded();
         } catch (error) {
@@ -134,6 +147,7 @@ const HostManager = ({ onHostAdded, hosts, onHostDeleted }) => {
                             <tr className="bg-slate-800/50 text-slate-300">
                                 <th className="p-4 font-semibold">Name</th>
                                 <th className="p-4 font-semibold">Address</th>
+                                <th className="p-4 font-semibold">Port</th>
                                 <th className="p-4 font-semibold">Interval</th>
                                 <th className="p-4 font-semibold text-right">Actions</th>
                             </tr>
@@ -198,6 +212,7 @@ const HostManager = ({ onHostAdded, hosts, onHostDeleted }) => {
                                             <>
                                                 <td className="p-4 font-medium text-white">{host.name}</td>
                                                 <td className="p-4 text-slate-300 font-mono text-sm">{host.ip_address}</td>
+                                                <td className="p-4 text-slate-300 font-mono text-sm">{host.port || 'ICMP'}</td>
                                                 <td className="p-4 text-slate-300">{host.interval}s</td>
                                                 <td className="p-4 text-right">
                                                     <div className="flex gap-2 justify-end">

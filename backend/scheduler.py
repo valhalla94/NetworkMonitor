@@ -88,15 +88,37 @@ def run_speedtest():
     except Exception as e:
         logger.error(f"Error running speedtest: {e}")
 
-def ping_host(host_id: int, ip_address: str, name: str):
+import socket
+
+def ping_host(host_id: int, ip_address: str, name: str, port: int = None):
     try:
-        latency = ping(ip_address, unit='ms', timeout=2)
-        if latency is None:
-            logger.warning(f"Ping timeout for {name} ({ip_address})")
-            latency_val = -1.0 # Use -1 to indicate timeout/down in Influx
+        latency_val = -1.0
+        
+        if port:
+            # TCP Check
+            try:
+                start_time = time.time()
+                sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                sock.settimeout(2)
+                result = sock.connect_ex((ip_address, port))
+                end_time = time.time()
+                sock.close()
+                
+                if result == 0:
+                    latency_val = (end_time - start_time) * 1000
+                    logger.info(f"TCP Check {name} ({ip_address}:{port}): {latency_val:.2f}ms")
+                else:
+                    logger.warning(f"TCP Check failed for {name} ({ip_address}:{port})")
+            except Exception as e:
+                logger.error(f"TCP Check error for {name}: {e}")
         else:
-            latency_val = float(latency)
-            logger.info(f"Ping {name} ({ip_address}): {latency_val}ms")
+            # ICMP Ping
+            latency = ping(ip_address, unit='ms', timeout=2)
+            if latency is None:
+                logger.warning(f"Ping timeout for {name} ({ip_address})")
+            else:
+                latency_val = float(latency)
+                logger.info(f"Ping {name} ({ip_address}): {latency_val}ms")
 
         point = (
             Point("ping_result")
@@ -105,6 +127,11 @@ def ping_host(host_id: int, ip_address: str, name: str):
             .tag("ip_address", ip_address)
             .field("latency", latency_val)
         )
+        if port:
+            point = point.tag("port", str(port)).tag("type", "tcp")
+        else:
+            point = point.tag("type", "icmp")
+            
         write_api.write(bucket=INFLUXDB_BUCKET, org=INFLUXDB_ORG, record=point)
 
     except Exception as e:
@@ -157,7 +184,7 @@ def update_jobs():
                     ping_host,
                     'interval',
                     seconds=host.interval,
-                    args=[host.id, host.ip_address, host.name],
+                    args=[host.id, host.ip_address, host.name, host.port],
                     id=f"ping_{host.id}",
                     replace_existing=True
                 )

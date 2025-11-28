@@ -57,6 +57,7 @@ def update_host(host_id: int, host: models.HostCreate, db: Session = Depends(get
     db_host.ip_address = host.ip_address
     db_host.interval = host.interval
     db_host.enabled = host.enabled
+    db_host.port = host.port
     
     db.commit()
     db.refresh(db_host)

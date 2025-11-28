@@ -12,6 +12,7 @@ class HostDB(Base):
     interval = Column(Integer, default=60) # Ping interval in seconds
     enabled = Column(Boolean, default=True)
     average_latency = Column(Float, nullable=True)
+    port = Column(Integer, nullable=True)
 
 # Pydantic Models
 class HostBase(BaseModel):
@@ -20,6 +21,7 @@ class HostBase(BaseModel):
     interval: int = 60
     enabled: bool = True
     average_latency: float | None = None
+    port: int | None = None
 
 class HostCreate(HostBase):
     pass
