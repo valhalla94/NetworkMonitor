@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { getHosts, getMetrics, getNetworkStatus, getPublicIpHistory, getSpeedTestHistory, runSpeedTest } from '../api';
-import { Activity, Server, Wifi, WifiOff, Clock, Calendar, Globe, History, Timer, Gauge, ArrowDown, ArrowUp } from 'lucide-react';
+import { Activity, Server, Wifi, WifiOff, Clock, Calendar, Globe, History, Timer, Gauge, ArrowDown, ArrowUp, Play, Loader2 } from 'lucide-react';
 import { format, formatDistanceToNow } from 'date-fns';
 
 const Dashboard = () => {
@@ -109,11 +109,15 @@ const Dashboard = () => {
         setIsSpeedTestRunning(true);
         try {
             await runSpeedTest();
-            alert("Speed test started! Results will appear in a few minutes.");
+            // The test runs in the background and takes about 30-60s.
+            // We'll keep the button in a "running" state for 60s to give feedback.
+            setTimeout(() => {
+                setIsSpeedTestRunning(false);
+                fetchSpeedTestHistory(); // Refresh results after waiting
+            }, 60000);
         } catch (error) {
             console.error("Error starting speed test:", error);
             alert("Failed to start speed test");
-        } finally {
             setIsSpeedTestRunning(false);
         }
     };
@@ -221,9 +225,22 @@ const Dashboard = () => {
                         <button
                             onClick={handleRunSpeedTest}
                             disabled={isSpeedTestRunning}
-                            className={`px-3 py-1 rounded-full border text-xs font-medium flex items-center gap-1.5 transition-all ${isSpeedTestRunning ? 'bg-violet-500/20 border-violet-500/30 text-violet-300 cursor-not-allowed' : 'bg-violet-500/20 border-violet-500/30 text-violet-300 hover:bg-violet-500/30'}`}
+                            className={`px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all shadow-lg ${isSpeedTestRunning
+                                    ? 'bg-violet-500/10 border border-violet-500/20 text-violet-400 cursor-not-allowed'
+                                    : 'bg-violet-600 hover:bg-violet-500 text-white shadow-violet-500/20 hover:shadow-violet-500/40 border border-transparent'
+                                }`}
                         >
-                            {isSpeedTestRunning ? 'Running...' : 'Run Test'}
+                            {isSpeedTestRunning ? (
+                                <>
+                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                    <span>Test Running...</span>
+                                </>
+                            ) : (
+                                <>
+                                    <Play className="w-4 h-4 fill-current" />
+                                    <span>Run Speed Test</span>
+                                </>
+                            )}
                         </button>
                     </div>
 

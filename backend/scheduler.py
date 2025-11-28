@@ -1,7 +1,7 @@
 import time
 from apscheduler.schedulers.background import BackgroundScheduler
 from sqlalchemy.orm import Session
-from database import SessionLocal, write_api, INFLUXDB_BUCKET, INFLUXDB_ORG
+from database import SessionLocal, write_api, query_api, INFLUXDB_BUCKET, INFLUXDB_ORG
 from models import HostDB
 from ping3 import ping
 from influxdb_client import Point
@@ -23,7 +23,6 @@ def check_public_ip():
             logger.info(f"Public IP: {ip_address}")
             
             # Check the last known IP from InfluxDB
-            from database import query_api
             query = f'''
             from(bucket: "{INFLUXDB_BUCKET}")
               |> range(start: -30d)
