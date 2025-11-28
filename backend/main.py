@@ -5,6 +5,8 @@ from typing import List
 import database
 import models
 import scheduler
+from ping3 import ping
+from pydantic import BaseModel
 from database import get_db, query_api, INFLUXDB_BUCKET, INFLUXDB_ORG
 
 # Create tables
@@ -162,21 +164,29 @@ def get_network_status():
     
     total_hosts = 0
     reachable_hosts = 0
+    total_latency = 0.0
+    latency_count = 0
     
     for table in result:
         for record in table.records:
             total_hosts += 1
-            if record.get_value() >= 0:
+            val = record.get_value()
+            if val >= 0:
                 reachable_hosts += 1
+                total_latency += val
+                latency_count += 1
                 
     if total_hosts == 0:
-        return {"status": "UNKNOWN", "details": "No data"}
+        return {"status": "UNKNOWN", "details": "No data", "global_avg_latency": 0}
         
     is_up = (reachable_hosts / total_hosts) > 0.5
+    global_avg = (total_latency / latency_count) if latency_count > 0 else 0
+    
     return {
         "status": "UP" if is_up else "DOWN",
         "reachable": reachable_hosts,
-        "total": total_hosts
+        "total": total_hosts,
+        "global_avg_latency": global_avg
     }
 
 @app.get("/public-ip-history")
@@ -237,3 +247,19 @@ def get_speedtest_history():
             })
             
     return history
+
+class QuickPingRequest(BaseModel):
+    target: str
+
+@app.post("/tools/ping")
+def quick_ping(request: QuickPingRequest):
+    """
+    Pings a specific host/IP once and returns the latency.
+    """
+    try:
+        latency = ping(request.target, unit='ms', timeout=2)
+        if latency is None:
+            return {"target": request.target, "reachable": False, "latency": None, "error": "Timeout"}
+        return {"target": request.target, "reachable": True, "latency": latency}
+    except Exception as e:
+        return {"target": request.target, "reachable": False, "latency": None, "error": str(e)}

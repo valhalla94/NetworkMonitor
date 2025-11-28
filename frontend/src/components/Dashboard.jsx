@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { getHosts, getMetrics, getNetworkStatus, getPublicIpHistory, getSpeedTestHistory, runSpeedTest } from '../api';
-import { Activity, Server, Wifi, WifiOff, Clock, Calendar, Globe, History, Timer, Gauge, ArrowDown, ArrowUp, Play, Loader2 } from 'lucide-react';
+import { getHosts, getMetrics, getNetworkStatus, getPublicIpHistory, getSpeedTestHistory, runSpeedTest, quickPing } from '../api';
+import { Activity, Server, Wifi, WifiOff, Clock, Calendar, Globe, History, Timer, Gauge, ArrowDown, ArrowUp, Play, Loader2, Search, Zap } from 'lucide-react';
 import { format, formatDistanceToNow } from 'date-fns';
 
 const Dashboard = () => {
@@ -17,6 +17,11 @@ const Dashboard = () => {
     const [speedTestHistory, setSpeedTestHistory] = useState([]);
     const [isSpeedTestRunning, setIsSpeedTestRunning] = useState(false);
     const [isChartLoading, setIsChartLoading] = useState(false);
+
+    // Quick Ping State
+    const [quickPingTarget, setQuickPingTarget] = useState('');
+    const [quickPingResult, setQuickPingResult] = useState(null);
+    const [quickPingLoading, setQuickPingLoading] = useState(false);
 
     useEffect(() => {
         fetchHosts();
@@ -119,6 +124,23 @@ const Dashboard = () => {
             console.error("Error starting speed test:", error);
             alert("Failed to start speed test");
             setIsSpeedTestRunning(false);
+        }
+    };
+
+    const handleQuickPing = async (e) => {
+        e.preventDefault();
+        if (!quickPingTarget) return;
+
+        setQuickPingLoading(true);
+        setQuickPingResult(null);
+        try {
+            const response = await quickPing(quickPingTarget);
+            setQuickPingResult(response.data);
+        } catch (error) {
+            console.error("Error pinging target:", error);
+            setQuickPingResult({ error: "Failed to ping target" });
+        } finally {
+            setQuickPingLoading(false);
         }
     };
 
@@ -226,8 +248,8 @@ const Dashboard = () => {
                             onClick={handleRunSpeedTest}
                             disabled={isSpeedTestRunning}
                             className={`px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all shadow-lg ${isSpeedTestRunning
-                                    ? 'bg-violet-500/10 border border-violet-500/20 text-violet-400 cursor-not-allowed'
-                                    : 'bg-violet-600 hover:bg-violet-500 text-white shadow-violet-500/20 hover:shadow-violet-500/40 border border-transparent'
+                                ? 'bg-violet-500/10 border border-violet-500/20 text-violet-400 cursor-not-allowed'
+                                : 'bg-violet-600 hover:bg-violet-500 text-white shadow-violet-500/20 hover:shadow-violet-500/40 border border-transparent'
                                 }`}
                         >
                             {isSpeedTestRunning ? (
@@ -273,6 +295,102 @@ const Dashboard = () => {
                                 {speedTestHistory.length > 0 ? formatDistanceToNow(new Date(speedTestHistory[0].timestamp), { addSuffix: true }) : 'No data'}
                             </div>
                         </div>
+                    </div>
+                </div>
+
+                {/* Quick Ping Card */}
+                <div className="glass-panel p-6 rounded-2xl border-l-4 border-l-amber-500 bg-amber-900/10 relative overflow-hidden group">
+                    <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                        <Search className="w-24 h-24 text-amber-400" />
+                    </div>
+
+                    <div className="flex items-center gap-3 mb-6">
+                        <div className="p-2 rounded-full bg-amber-500/20 text-amber-400">
+                            <Search className="w-5 h-5" />
+                        </div>
+                        <h2 className="text-lg font-bold text-white">Quick Ping</h2>
+                    </div>
+
+                    <form onSubmit={handleQuickPing} className="flex gap-2 mb-4">
+                        <input
+                            type="text"
+                            value={quickPingTarget}
+                            onChange={(e) => setQuickPingTarget(e.target.value)}
+                            placeholder="IP or Hostname"
+                            disabled={quickPingLoading}
+                            className="flex-1 bg-slate-800/50 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-amber-500 transition-colors disabled:opacity-50"
+                        />
+                        <button
+                            type="submit"
+                            disabled={quickPingLoading || !quickPingTarget}
+                            className="bg-amber-600 hover:bg-amber-500 disabled:opacity-50 disabled:cursor-not-allowed text-white px-4 py-2 rounded-lg transition-all flex items-center gap-2 font-medium"
+                        >
+                            {quickPingLoading ? (
+                                <>
+                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                    <span>Pinging...</span>
+                                </>
+                            ) : (
+                                <>
+                                    <Play className="w-4 h-4 fill-current" />
+                                    <span>Ping</span>
+                                </>
+                            )}
+                        </button>
+                    </form>
+
+                    {quickPingResult && (
+                        <div className={`p-4 rounded-lg border animate-in fade-in slide-in-from-top-2 duration-300 ${quickPingResult.reachable ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-300' : 'bg-rose-500/10 border-rose-500/20 text-rose-300'}`}>
+                            {quickPingResult.error ? (
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2 rounded-full bg-rose-500/20">
+                                        <WifiOff className="w-5 h-5" />
+                                    </div>
+                                    <div>
+                                        <div className="font-bold text-rose-200">Ping Failed</div>
+                                        <div className="text-xs opacity-80">{quickPingResult.error}</div>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="flex justify-between items-center">
+                                    <div className="flex items-center gap-3">
+                                        <div className="p-2 rounded-full bg-emerald-500/20">
+                                            <Activity className="w-5 h-5" />
+                                        </div>
+                                        <div>
+                                            <div className="font-bold text-emerald-200">Target Reachable</div>
+                                            <div className="text-xs opacity-80 font-mono">{quickPingResult.target}</div>
+                                        </div>
+                                    </div>
+                                    <div className="text-2xl font-mono font-bold">{quickPingResult.latency?.toFixed(1)}<span className="text-sm ml-1 opacity-70">ms</span></div>
+                                </div>
+                            )}
+                        </div>
+                    )}
+                </div>
+
+                {/* Network Health Card */}
+                <div className="glass-panel p-6 rounded-2xl border-l-4 border-l-cyan-500 bg-cyan-900/10 relative overflow-hidden group">
+                    <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                        <Zap className="w-24 h-24 text-cyan-400" />
+                    </div>
+
+                    <div className="flex items-center gap-3 mb-6">
+                        <div className="p-2 rounded-full bg-cyan-500/20 text-cyan-400">
+                            <Zap className="w-5 h-5" />
+                        </div>
+                        <h2 className="text-lg font-bold text-white">Network Health</h2>
+                    </div>
+
+                    <div className="flex flex-col gap-1">
+                        <div className="text-sm text-slate-400">Global Avg Latency</div>
+                        <div className="text-3xl font-mono font-bold text-white tracking-wider">
+                            {networkStatus.global_avg_latency ? networkStatus.global_avg_latency.toFixed(2) : '0.00'} <span className="text-sm text-slate-500">ms</span>
+                        </div>
+                    </div>
+
+                    <div className="mt-4 pt-4 border-t border-slate-700/50 text-xs text-slate-500">
+                        Average across all {networkStatus.total} monitored hosts
                     </div>
                 </div>
             </div>

@@ -15,5 +15,6 @@ export const getNetworkStatus = () => api.get('/status');
 export const getPublicIpHistory = () => api.get('/public-ip-history');
 export const getSpeedTestHistory = () => api.get('/speedtest/history');
 export const runSpeedTest = () => api.post('/speedtest/run');
+export const quickPing = (target) => api.post('/tools/ping', { target });
 
 export default api;
