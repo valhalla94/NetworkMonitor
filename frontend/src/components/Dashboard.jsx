@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { getHosts, getMetrics, getNetworkStatus, getPublicIpHistory } from '../api';
-import { Activity, Server, Wifi, WifiOff, Clock, Calendar, Globe, History, Timer } from 'lucide-react';
+import { getHosts, getMetrics, getNetworkStatus, getPublicIpHistory, getSpeedTestHistory, runSpeedTest } from '../api';
+import { Activity, Server, Wifi, WifiOff, Clock, Calendar, Globe, History, Timer, Gauge, ArrowDown, ArrowUp } from 'lucide-react';
 import { format, formatDistanceToNow } from 'date-fns';
 
 const Dashboard = () => {
@@ -14,11 +14,14 @@ const Dashboard = () => {
     const [networkStatus, setNetworkStatus] = useState({ status: 'UNKNOWN', reachable: 0, total: 0 });
     const [publicIpHistory, setPublicIpHistory] = useState([]);
     const [ipStats, setIpStats] = useState({ since: null, duration: null });
+    const [speedTestHistory, setSpeedTestHistory] = useState([]);
+    const [isSpeedTestRunning, setIsSpeedTestRunning] = useState(false);
 
     useEffect(() => {
         fetchHosts();
         fetchNetworkStatus();
         fetchPublicIpHistory();
+        fetchSpeedTestHistory();
         const interval = setInterval(() => {
             fetchHosts();
             fetchNetworkStatus();
@@ -89,6 +92,28 @@ const Dashboard = () => {
             setPublicIpHistory(response.data);
         } catch (error) {
             console.error("Error fetching public IP history:", error);
+        }
+    };
+
+    const fetchSpeedTestHistory = async () => {
+        try {
+            const response = await getSpeedTestHistory();
+            setSpeedTestHistory(response.data);
+        } catch (error) {
+            console.error("Error fetching speed test history:", error);
+        }
+    };
+
+    const handleRunSpeedTest = async () => {
+        setIsSpeedTestRunning(true);
+        try {
+            await runSpeedTest();
+            alert("Speed test started! Results will appear in a few minutes.");
+        } catch (error) {
+            console.error("Error starting speed test:", error);
+            alert("Failed to start speed test");
+        } finally {
+            setIsSpeedTestRunning(false);
         }
     };
 
@@ -174,6 +199,60 @@ const Dashboard = () => {
                             </div>
                         </div>
                     )}
+                </div>
+
+                {/* Speed Test Card */}
+                <div className="glass-panel p-6 rounded-2xl border-l-4 border-l-violet-500 bg-violet-900/10 relative overflow-hidden group">
+                    <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                        <Gauge className="w-24 h-24 text-violet-400" />
+                    </div>
+
+                    <div className="flex items-center justify-between mb-6">
+                        <div className="flex items-center gap-3">
+                            <div className="p-2 rounded-full bg-violet-500/20 text-violet-400">
+                                <Gauge className="w-5 h-5" />
+                            </div>
+                            <h2 className="text-lg font-bold text-white">Internet Speed</h2>
+                        </div>
+                        <button
+                            onClick={handleRunSpeedTest}
+                            disabled={isSpeedTestRunning}
+                            className={`px-3 py-1 rounded-full border text-xs font-medium flex items-center gap-1.5 transition-all ${isSpeedTestRunning ? 'bg-violet-500/20 border-violet-500/30 text-violet-300 cursor-not-allowed' : 'bg-violet-500/20 border-violet-500/30 text-violet-300 hover:bg-violet-500/30'}`}
+                        >
+                            {isSpeedTestRunning ? 'Running...' : 'Run Test'}
+                        </button>
+                    </div>
+
+                    <div className="mb-6 grid grid-cols-2 gap-4">
+                        <div>
+                            <div className="text-xs text-slate-400 mb-1 flex items-center gap-1">
+                                <ArrowDown className="w-3 h-3" /> Download
+                            </div>
+                            <div className="text-2xl font-mono font-bold text-white tracking-wider">
+                                {speedTestHistory.length > 0 ? speedTestHistory[0].download.toFixed(1) : '-'} <span className="text-sm text-slate-500">Mbps</span>
+                            </div>
+                        </div>
+                        <div>
+                            <div className="text-xs text-slate-400 mb-1 flex items-center gap-1">
+                                <ArrowUp className="w-3 h-3" /> Upload
+                            </div>
+                            <div className="text-2xl font-mono font-bold text-white tracking-wider">
+                                {speedTestHistory.length > 0 ? speedTestHistory[0].upload.toFixed(1) : '-'} <span className="text-sm text-slate-500">Mbps</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="pt-4 border-t border-slate-700/50">
+                        <div className="flex items-center justify-between text-sm">
+                            <div className="flex items-center gap-2 text-slate-400">
+                                <Activity className="w-3.5 h-3.5" />
+                                <span>Ping: <span className="text-white font-mono">{speedTestHistory.length > 0 ? speedTestHistory[0].ping.toFixed(0) : '-'}ms</span></span>
+                            </div>
+                            <div className="text-xs text-slate-500">
+                                {speedTestHistory.length > 0 ? formatDistanceToNow(new Date(speedTestHistory[0].timestamp), { addSuffix: true }) : 'No data'}
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 

@@ -172,4 +172,39 @@ def get_public_ip_history():
                 "ip_address": record.get_value()
             })
             
+            
+    return history
+
+@app.post("/speedtest/run")
+def run_speedtest_manual():
+    """
+    Manually trigger a speed test.
+    """
+    scheduler.scheduler.add_job(scheduler.run_speedtest)
+    return {"message": "Speed test started"}
+
+@app.get("/speedtest/history", response_model=List[models.SpeedTestResultBase])
+def get_speedtest_history():
+    """
+    Get the history of speed test results for the last 30 days.
+    """
+    query = f'''
+    from(bucket: "{INFLUXDB_BUCKET}")
+      |> range(start: -30d)
+      |> filter(fn: (r) => r["_measurement"] == "speedtest_result")
+      |> pivot(rowKey:["_time"], columnKey: ["_field"], valueColumn: "_value")
+      |> sort(columns: ["_time"], desc: true)
+    '''
+    result = query_api.query(org=INFLUXDB_ORG, query=query)
+    
+    history = []
+    for table in result:
+        for record in table.records:
+            history.append({
+                "timestamp": record.get_time().isoformat(),
+                "download": record.values.get("download", 0),
+                "upload": record.values.get("upload", 0),
+                "ping": record.values.get("ping", 0)
+            })
+            
     return history

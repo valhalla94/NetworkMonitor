@@ -34,3 +34,24 @@ class PingResult(BaseModel):
     host_id: int
     latency: float | None # None if timeout
     timestamp: str
+
+class SpeedTestResultDB(Base):
+    __tablename__ = "speedtest_results"
+
+    id = Column(Integer, primary_key=True, index=True)
+    download = Column(Float) # Mbps
+    upload = Column(Float) # Mbps
+    ping = Column(Float) # ms
+    timestamp = Column(String)
+
+class SpeedTestResultBase(BaseModel):
+    download: float
+    upload: float
+    ping: float
+    timestamp: str
+
+class SpeedTestResult(SpeedTestResultBase):
+    id: int
+
+    class Config:
+        from_attributes = True

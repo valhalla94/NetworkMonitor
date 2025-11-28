@@ -7,6 +7,8 @@ from ping3 import ping
 from influxdb_client import Point
 import logging
 import requests
+import subprocess
+import json
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -51,6 +53,40 @@ def check_public_ip():
             logger.error(f"Failed to get public IP: {response.status_code}")
     except Exception as e:
         logger.error(f"Error checking public IP: {e}")
+
+def run_speedtest():
+    logger.info("Starting Internet Speed Test...")
+    try:
+        # Run speedtest-cli
+        # We use --secure to use HTTPS
+        cmd = ["speedtest-cli", "--json", "--secure"]
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
+        
+        if result.returncode != 0:
+            logger.error(f"Speedtest failed: {result.stderr}")
+            return
+
+        data = json.loads(result.stdout)
+        
+        download_mbps = data["download"] / 1_000_000
+        upload_mbps = data["upload"] / 1_000_000
+        ping_ms = data["ping"]
+        
+        logger.info(f"Speedtest Result: D:{download_mbps:.2f} Mbps, U:{upload_mbps:.2f} Mbps, P:{ping_ms:.2f} ms")
+
+        point = (
+            Point("speedtest_result")
+            .field("download", float(download_mbps))
+            .field("upload", float(upload_mbps))
+            .field("ping", float(ping_ms))
+            .field("server_id", data["server"]["id"])
+            .field("server_name", data["server"]["name"])
+            .field("server_country", data["server"]["country"])
+        )
+        write_api.write(bucket=INFLUXDB_BUCKET, org=INFLUXDB_ORG, record=point)
+        
+    except Exception as e:
+        logger.error(f"Error running speedtest: {e}")
 
 def ping_host(host_id: int, ip_address: str, name: str):
     try:
@@ -144,6 +180,17 @@ def update_jobs():
             replace_existing=True
         )
         logger.info("Added public IP check job.")
+
+    # Add speedtest job (every 6 hours)
+    if not scheduler.get_job('run_speedtest'):
+        scheduler.add_job(
+            run_speedtest,
+            'interval',
+            hours=6,
+            id='run_speedtest',
+            replace_existing=True
+        )
+        logger.info("Added speedtest job.")
 
 
     # Add average latency calculation job
