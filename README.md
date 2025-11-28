@@ -5,9 +5,11 @@ A modern, self-hosted network monitoring dashboard built with React, FastAPI, an
 ## 🚀 Features
 
 *   **Real-time Monitoring**: Track latency and uptime for multiple hosts.
-*   **Average Latency Reporting**: View average latency statistics for each host (updated every 6 hours).
-*   **Historical Data**: View interactive charts for latency trends over time (1h, 24h, 7d, 30d, 1y).
+*   **Internet Speed Test**: Built-in speed test to check your ISP's performance (Download, Upload, Ping) with historical tracking.
+*   **Quick Ping**: Instantly ping any IP or hostname directly from the dashboard without adding it to the monitor.
+*   **Network Health**: View global average latency across all monitored hosts for a quick health snapshot.
 *   **Public IP Tracking**: Monitor your public IP address, view history of changes, and track duration of the current IP.
+*   **Historical Data**: View interactive charts for latency trends over time (1h, 24h, 7d, 30d, 1y).
 *   **Network Status**: Get an instant overview of your network health (UP/DOWN status based on reachable hosts).
 *   **Host Management**: Add, edit, and delete hosts via a password-protected settings interface.
 *   **Responsive Design**: "Premium" glassmorphism UI that looks great on desktop and mobile.
@@ -79,8 +81,9 @@ See [DEPLOY_SYNOLOGY.md](./DEPLOY_SYNOLOGY.md) for detailed instructions.
 
 ## 🔄 Recent Updates
 
-*   **Feature**: Added average latency reporting (6-hour intervals).
-*   **Fix**: Resolved scheduler initialization issue (`AttributeError`) to ensure reliable background tasks.
+*   **Feature**: Added Internet Speed Test, Quick Ping, and Network Health cards.
+*   **UI/UX**: Improved button interactions, added animations, and refined the glassmorphism design.
+*   **Fix**: Resolved scheduler initialization issue and database schema migrations.
 
 ## 📝 License
 
