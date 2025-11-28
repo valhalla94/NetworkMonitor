@@ -16,6 +16,7 @@ const Dashboard = () => {
     const [ipStats, setIpStats] = useState({ since: null, duration: null });
     const [speedTestHistory, setSpeedTestHistory] = useState([]);
     const [isSpeedTestRunning, setIsSpeedTestRunning] = useState(false);
+    const [isChartLoading, setIsChartLoading] = useState(false);
 
     useEffect(() => {
         fetchHosts();
@@ -118,6 +119,7 @@ const Dashboard = () => {
     };
 
     const fetchMetrics = async (hostId) => {
+        setIsChartLoading(true);
         try {
             const response = await getMetrics(hostId, timeRange);
             const formattedData = response.data.data.map(d => ({
@@ -130,6 +132,8 @@ const Dashboard = () => {
             setAvgLatency(response.data.avg_latency);
         } catch (error) {
             console.error("Error fetching metrics:", error);
+        } finally {
+            setIsChartLoading(false);
         }
     };
 
@@ -290,8 +294,18 @@ const Dashboard = () => {
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 {/* Metrics Chart */}
+                {/* Metrics Chart */}
                 {selectedHost && (
-                    <div className="lg:col-span-2 glass-panel p-8 rounded-2xl">
+                    <div className="lg:col-span-2 glass-panel p-8 rounded-2xl relative">
+                        {isChartLoading && (
+                            <div className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm z-10 flex items-center justify-center rounded-2xl">
+                                <div className="flex flex-col items-center gap-3">
+                                    <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                                    <span className="text-blue-400 font-medium animate-pulse">Loading data...</span>
+                                </div>
+                            </div>
+                        )}
+
                         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-6">
                             <div>
                                 <h2 className="text-2xl font-bold flex items-center gap-3 text-white">
@@ -323,7 +337,7 @@ const Dashboard = () => {
                                     <button
                                         key={option.value}
                                         onClick={() => setTimeRange(option.value)}
-                                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${timeRange === option.value ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}
+                                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${timeRange === option.value ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/25' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}
                                     >
                                         {option.label}
                                     </button>
@@ -334,6 +348,12 @@ const Dashboard = () => {
                         <div className="h-[500px] w-full">
                             <ResponsiveContainer width="100%" height="100%">
                                 <AreaChart data={metrics}>
+                                    <defs>
+                                        <linearGradient id="colorLatency" x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} />
+                                            <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
+                                        </linearGradient>
+                                    </defs>
                                     <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} />
                                     <XAxis
                                         dataKey="time"
@@ -360,13 +380,16 @@ const Dashboard = () => {
                                             boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.5)'
                                         }}
                                         itemStyle={{ color: '#60a5fa' }}
+                                        animationDuration={300}
                                     />
                                     <Area
                                         type="monotone"
                                         dataKey="latency"
                                         stroke="#3b82f6"
                                         strokeWidth={3}
-                                        fill="#3b82f644"
+                                        fillOpacity={1}
+                                        fill="url(#colorLatency)"
+                                        animationDuration={500}
                                     />
                                 </AreaChart>
                             </ResponsiveContainer>
