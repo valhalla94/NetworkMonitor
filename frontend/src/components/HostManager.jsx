@@ -261,100 +261,100 @@ const HostManager = ({ onHostAdded, hosts, onHostDeleted }) => {
                                                         className="glass-input w-full px-3 py-1.5 rounded-lg outline-none text-sm font-mono"
                                                     />
                                                 </td>
+
                                                 <td className="p-4">
-                                                    <td className="p-4">
-                                                        <input
-                                                            type="text"
-                                                            value={editForm.group_name}
-                                                            onChange={(e) => setEditForm({ ...editForm, group_name: e.target.value })}
-                                                            className="glass-input w-full px-3 py-1.5 rounded-lg outline-none text-sm"
-                                                        />
-                                                    </td>
-                                                    <td className="p-4 relative">
-                                                        <div className="absolute inset-x-2 -top-2 flex gap-1 justify-center">
-                                                            <label className="flex items-center gap-1 bg-slate-800/80 px-2 py-0.5 rounded border border-slate-700 text-[10px] text-slate-400 cursor-pointer hover:text-white">
-                                                                <input
-                                                                    type="checkbox"
-                                                                    checked={editForm.maintenance}
-                                                                    onChange={(e) => setEditForm({ ...editForm, maintenance: e.target.checked })}
-                                                                    className="w-3 h-3 rounded bg-slate-700 border-slate-600"
-                                                                />
-                                                                Maint.
-                                                            </label>
-                                                        </div>
-                                                        <div className="text-xs text-center text-slate-500 pt-3">
-                                                            {editForm.monitor_type.toUpperCase()}
-                                                        </div>
-                                                    </td>
-                                                    <td className="p-4">
-                                                        <input
-                                                            type="number"
-                                                            value={editForm.interval}
-                                                            onChange={(e) => setEditForm({ ...editForm, interval: parseInt(e.target.value) })}
-                                                            className="glass-input w-20 px-3 py-1.5 rounded-lg outline-none text-sm"
-                                                            min="5"
-                                                        />
-                                                    </td>
-                                                    <td className="p-4 text-right">
-                                                        <div className="flex gap-2 justify-end">
-                                                            <button
-                                                                onClick={() => saveEdit(host.id)}
-                                                                className="p-2 text-emerald-400 hover:bg-emerald-500/10 rounded-lg transition-colors"
-                                                                title="Save Changes"
-                                                            >
-                                                                <Check className="w-5 h-5" />
-                                                            </button>
-                                                            <button
-                                                                onClick={cancelEdit}
-                                                                className="p-2 text-slate-400 hover:bg-slate-500/10 rounded-lg transition-colors"
-                                                                title="Cancel"
-                                                            >
-                                                                <X className="w-5 h-5" />
-                                                            </button>
-                                                        </div>
-                                                    </td>
-                                                </>
-                                                ) : (
-                                                <>
-                                                    <td className="p-4 font-medium text-white">
-                                                        {host.name}
-                                                        {host.maintenance && <span className="ml-2 px-1.5 py-0.5 text-[10px] bg-amber-500/20 text-amber-400 rounded border border-amber-500/30">MAINTENANCE</span>}
-                                                    </td>
-                                                    <td className="p-4 text-slate-300 font-mono text-sm">{host.ip_address}</td>
-                                                    <td className="p-4 text-slate-300 text-sm">{host.group_name || '-'}</td>
-                                                    <td className="p-4 text-slate-300 font-mono text-sm">
-                                                        <span className={`px-2 py-1 rounded-md text-xs font-bold ${host.monitor_type === 'http' ? 'bg-purple-500/20 text-purple-400' :
-                                                            host.monitor_type === 'tcp' ? 'bg-orange-500/20 text-orange-400' :
-                                                                'bg-blue-500/20 text-blue-400'
-                                                            }`}>
-                                                            {host.monitor_type === 'tcp' ? `TCP:${host.port}` : host.monitor_type?.toUpperCase() || 'ICMP'}
-                                                        </span>
-                                                    </td>
-                                                    <td className="p-4 text-slate-300">{host.interval}s</td>
-                                                    <td className="p-4 text-right">
-                                                        <div className="flex gap-2 justify-end">
-                                                            <button
-                                                                onClick={() => startEdit(host)}
-                                                                className="p-2 text-blue-400 hover:bg-blue-500/10 rounded-lg transition-colors"
-                                                                title="Edit Host"
-                                                            >
-                                                                <Edit2 className="w-5 h-5" />
-                                                            </button>
-                                                            <button
-                                                                onClick={() => handleDelete(host.id)}
-                                                                className="p-2 text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors"
-                                                                title="Delete Host"
-                                                            >
-                                                                <Trash2 className="w-5 h-5" />
-                                                            </button>
-                                                        </div>
-                                                    </td>
-                                                </>
+                                                    <input
+                                                        type="text"
+                                                        value={editForm.group_name}
+                                                        onChange={(e) => setEditForm({ ...editForm, group_name: e.target.value })}
+                                                        className="glass-input w-full px-3 py-1.5 rounded-lg outline-none text-sm"
+                                                    />
+                                                </td>
+                                                <td className="p-4 relative">
+                                                    <div className="absolute inset-x-2 -top-2 flex gap-1 justify-center">
+                                                        <label className="flex items-center gap-1 bg-slate-800/80 px-2 py-0.5 rounded border border-slate-700 text-[10px] text-slate-400 cursor-pointer hover:text-white">
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={editForm.maintenance}
+                                                                onChange={(e) => setEditForm({ ...editForm, maintenance: e.target.checked })}
+                                                                className="w-3 h-3 rounded bg-slate-700 border-slate-600"
+                                                            />
+                                                            Maint.
+                                                        </label>
+                                                    </div>
+                                                    <div className="text-xs text-center text-slate-500 pt-3">
+                                                        {editForm.monitor_type.toUpperCase()}
+                                                    </div>
+                                                </td>
+                                                <td className="p-4">
+                                                    <input
+                                                        type="number"
+                                                        value={editForm.interval}
+                                                        onChange={(e) => setEditForm({ ...editForm, interval: parseInt(e.target.value) })}
+                                                        className="glass-input w-20 px-3 py-1.5 rounded-lg outline-none text-sm"
+                                                        min="5"
+                                                    />
+                                                </td>
+                                                <td className="p-4 text-right">
+                                                    <div className="flex gap-2 justify-end">
+                                                        <button
+                                                            onClick={() => saveEdit(host.id)}
+                                                            className="p-2 text-emerald-400 hover:bg-emerald-500/10 rounded-lg transition-colors"
+                                                            title="Save Changes"
+                                                        >
+                                                            <Check className="w-5 h-5" />
+                                                        </button>
+                                                        <button
+                                                            onClick={cancelEdit}
+                                                            className="p-2 text-slate-400 hover:bg-slate-500/10 rounded-lg transition-colors"
+                                                            title="Cancel"
+                                                        >
+                                                            <X className="w-5 h-5" />
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <td className="p-4 font-medium text-white">
+                                                    {host.name}
+                                                    {host.maintenance && <span className="ml-2 px-1.5 py-0.5 text-[10px] bg-amber-500/20 text-amber-400 rounded border border-amber-500/30">MAINTENANCE</span>}
+                                                </td>
+                                                <td className="p-4 text-slate-300 font-mono text-sm">{host.ip_address}</td>
+                                                <td className="p-4 text-slate-300 text-sm">{host.group_name || '-'}</td>
+                                                <td className="p-4 text-slate-300 font-mono text-sm">
+                                                    <span className={`px-2 py-1 rounded-md text-xs font-bold ${host.monitor_type === 'http' ? 'bg-purple-500/20 text-purple-400' :
+                                                        host.monitor_type === 'tcp' ? 'bg-orange-500/20 text-orange-400' :
+                                                            'bg-blue-500/20 text-blue-400'
+                                                        }`}>
+                                                        {host.monitor_type === 'tcp' ? `TCP:${host.port}` : host.monitor_type?.toUpperCase() || 'ICMP'}
+                                                    </span>
+                                                </td>
+                                                <td className="p-4 text-slate-300">{host.interval}s</td>
+                                                <td className="p-4 text-right">
+                                                    <div className="flex gap-2 justify-end">
+                                                        <button
+                                                            onClick={() => startEdit(host)}
+                                                            className="p-2 text-blue-400 hover:bg-blue-500/10 rounded-lg transition-colors"
+                                                            title="Edit Host"
+                                                        >
+                                                            <Edit2 className="w-5 h-5" />
+                                                        </button>
+                                                        <button
+                                                            onClick={() => handleDelete(host.id)}
+                                                            className="p-2 text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors"
+                                                            title="Delete Host"
+                                                        >
+                                                            <Trash2 className="w-5 h-5" />
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </>
                                         )}
-                                            </tr>
-                                        ))
+                                    </tr>
+                                ))
                             )}
-                                    </tbody>
+                        </tbody>
                     </table>
                 </div>
             </div>
