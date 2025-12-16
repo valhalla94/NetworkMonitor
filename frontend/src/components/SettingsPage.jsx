@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import HostManager from './HostManager';
 import { Lock, ArrowLeft, Eye, EyeOff } from 'lucide-react';
-import { getHosts } from '../api';
+import { getHosts, login } from '../api';
 
 const SettingsPage = () => {
     const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -16,8 +16,8 @@ const SettingsPage = () => {
 
     useEffect(() => {
         // Check if already authenticated in this session
-        const auth = sessionStorage.getItem('authenticated');
-        if (auth === 'true') {
+        const token = sessionStorage.getItem('token');
+        if (token) {
             setIsAuthenticated(true);
             fetchHosts();
         }
@@ -38,14 +38,15 @@ const SettingsPage = () => {
         }
     };
 
-    const handleLogin = (e) => {
+    const handleLogin = async (e) => {
         e.preventDefault();
-        if (password === ADMIN_PASSWORD) {
+        try {
+            const response = await login('admin', password);
+            sessionStorage.setItem('token', response.data.access_token);
             setIsAuthenticated(true);
-            sessionStorage.setItem('authenticated', 'true');
             setError('');
             setPassword('');
-        } else {
+        } catch (err) {
             setError('Incorrect password');
             setPassword('');
         }
@@ -53,7 +54,7 @@ const SettingsPage = () => {
 
     const handleLogout = () => {
         setIsAuthenticated(false);
-        sessionStorage.removeItem('authenticated');
+        sessionStorage.removeItem('token');
         navigate('/');
     };
 

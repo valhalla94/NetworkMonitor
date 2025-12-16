@@ -1,10 +1,14 @@
-from fastapi import FastAPI, Depends, HTTPException
+from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from typing import List
+from datetime import timedelta
 import database
 import models
 import scheduler
+import auth
+import os
 from ping3 import ping
 from pydantic import BaseModel
 from database import get_db, query_api, INFLUXDB_BUCKET, INFLUXDB_ORG
@@ -15,6 +19,7 @@ models.Base.metadata.create_all(bind=database.engine)
 
 app = FastAPI(title="Network Monitor API")
 
+
 # CORS
 app.add_middleware(
     CORSMiddleware,
@@ -24,12 +29,45 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+
+def get_current_user(token: str = Depends(oauth2_scheme)):
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    token_data = auth.decode_access_token(token)
+    if token_data is None:
+        raise credentials_exception
+    user = auth.User(username=token_data.username)
+    return user
+
+@app.post("/token", response_model=auth.Token)
+async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
+    # Simple hardcoded admin check for now, can be expanded to DB
+    admin_password = os.getenv("ADMIN_PASSWORD", "admin")
+    
+    # In a real app we would check username too, but here we just check password for "admin"
+    if form_data.username != "admin" or not auth.verify_password(form_data.password, auth.get_password_hash(admin_password)):
+         raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect username or password",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    
+    access_token_expires = timedelta(minutes=auth.ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = auth.create_access_token(
+        data={"sub": form_data.username}, expires_delta=access_token_expires
+    )
+    return {"access_token": access_token, "token_type": "bearer"}
+
 @app.on_event("startup")
 def startup_event():
     scheduler.start_scheduler()
 
 @app.post("/hosts/", response_model=models.Host)
-def create_host(host: models.HostCreate, db: Session = Depends(get_db)):
+def create_host(host: models.HostCreate, db: Session = Depends(get_db), current_user: auth.User = Depends(get_current_user)):
     db_host = models.HostDB(**host.dict())
     db.add(db_host)
     db.commit()
@@ -50,7 +88,7 @@ def read_host(host_id: int, db: Session = Depends(get_db)):
     return db_host
 
 @app.put("/hosts/{host_id}", response_model=models.Host)
-def update_host(host_id: int, host: models.HostCreate, db: Session = Depends(get_db)):
+def update_host(host_id: int, host: models.HostCreate, db: Session = Depends(get_db), current_user: auth.User = Depends(get_current_user)):
     db_host = db.query(models.HostDB).filter(models.HostDB.id == host_id).first()
     if db_host is None:
         raise HTTPException(status_code=404, detail="Host not found")
@@ -67,7 +105,7 @@ def update_host(host_id: int, host: models.HostCreate, db: Session = Depends(get
     return db_host
 
 @app.delete("/hosts/{host_id}")
-def delete_host(host_id: int, db: Session = Depends(get_db)):
+def delete_host(host_id: int, db: Session = Depends(get_db), current_user: auth.User = Depends(get_current_user)):
     db_host = db.query(models.HostDB).filter(models.HostDB.id == host_id).first()
     if db_host is None:
         raise HTTPException(status_code=404, detail="Host not found")

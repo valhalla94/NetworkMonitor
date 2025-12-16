@@ -6,6 +6,21 @@ const api = axios.create({
     baseURL: API_URL,
 });
 
+api.interceptors.request.use((config) => {
+    const token = sessionStorage.getItem('token');
+    if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+});
+
+export const login = (username, password) => {
+    const formData = new FormData();
+    formData.append('username', username);
+    formData.append('password', password);
+    return api.post('/token', formData);
+};
+
 export const getHosts = () => api.get('/hosts/');
 export const createHost = (data) => api.post('/hosts/', data);
 export const updateHost = (id, data) => api.put(`/hosts/${id}`, data);
