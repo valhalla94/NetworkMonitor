@@ -1,10 +1,11 @@
 import time
 from apscheduler.schedulers.background import BackgroundScheduler
+from sqlalchemy import func
 from sqlalchemy.orm import Session
-from database import SessionLocal, write_api, query_api, INFLUXDB_BUCKET, INFLUXDB_ORG
-from models import HostDB
+from database import SessionLocal
+from models import HostDB, PingResultDB, SpeedTestResultDB, PublicIPHistoryDB
 from ping3 import ping
-from influxdb_client import Point
+from datetime import timedelta
 import logging
 import requests
 import subprocess
@@ -21,45 +22,36 @@ logger = logging.getLogger(__name__)
 scheduler = BackgroundScheduler()
 
 def check_public_ip():
+    
+    db = SessionLocal()
     try:
         response = requests.get('https://api.ipify.org?format=json', timeout=10)
         if response.status_code == 200:
             ip_address = response.json().get('ip')
             logger.info(f"Public IP: {ip_address}")
             
-            # Check the last known IP from InfluxDB
-            query = f'''
-            from(bucket: "{INFLUXDB_BUCKET}")
-              |> range(start: -30d)
-              |> filter(fn: (r) => r["_measurement"] == "public_ip_history")
-              |> filter(fn: (r) => r["_field"] == "ip_address")
-              |> last()
-            '''
-            result = query_api.query(org=INFLUXDB_ORG, query=query)
+            # Check the last known IP from DB
+            last_record = db.query(PublicIPHistoryDB).order_by(PublicIPHistoryDB.timestamp.desc()).first()
+            last_ip = last_record.ip_address if last_record else None
             
-            last_ip = None
-            for table in result:
-                for record in table.records:
-                    last_ip = record.get_value()
-                    break
-            
-            # Only write to InfluxDB if the IP has changed
+            # Only write to DB if the IP has changed
             if last_ip != ip_address:
                 logger.info(f"Public IP changed from {last_ip} to {ip_address}")
-                point = (
-                    Point("public_ip_history")
-                    .field("ip_address", ip_address)
-                )
-                write_api.write(bucket=INFLUXDB_BUCKET, org=INFLUXDB_ORG, record=point)
+                new_record = PublicIPHistoryDB(ip_address=ip_address)
+                db.add(new_record)
+                db.commit()
             else:
                 logger.info(f"Public IP unchanged: {ip_address}")
         else:
             logger.error(f"Failed to get public IP: {response.status_code}")
     except Exception as e:
         logger.error(f"Error checking public IP: {e}")
+    finally:
+        db.close()
 
 def run_speedtest():
     logger.info("Starting Internet Speed Test...")
+    db = SessionLocal()
     try:
         # Run speedtest-cli
         # We use --secure to use HTTPS
@@ -78,19 +70,22 @@ def run_speedtest():
         
         logger.info(f"Speedtest Result: D:{download_mbps:.2f} Mbps, U:{upload_mbps:.2f} Mbps, P:{ping_ms:.2f} ms")
 
-        point = (
-            Point("speedtest_result")
-            .field("download", float(download_mbps))
-            .field("upload", float(upload_mbps))
-            .field("ping", float(ping_ms))
-            .field("server_id", data["server"]["id"])
-            .field("server_name", data["server"]["name"])
-            .field("server_country", data["server"]["country"])
+        # Save to DB
+        new_result = SpeedTestResultDB(
+            download=download_mbps,
+            upload=upload_mbps,
+            ping=ping_ms,
+            server_id=data["server"]["id"],
+            server_name=data["server"]["name"],
+            server_country=data["server"]["country"]
         )
-        write_api.write(bucket=INFLUXDB_BUCKET, org=INFLUXDB_ORG, record=point)
+        db.add(new_result)
+        db.commit()
         
     except Exception as e:
         logger.error(f"Error running speedtest: {e}")
+    finally:
+        db.close()
 
 import socket
 
@@ -175,25 +170,20 @@ def ping_host(host_id: int, ip_address: str, name: str, port: int = None, monito
                 logger.info(f"SSL Check {name}: {ssl_days} days remaining")
 
         # 3. Write to InfluxDB
-        point = (
-            Point("ping_result")
-            .tag("host_id", str(host_id))
-            .tag("host_name", name)
-            .tag("ip_address", ip_address)
-            .tag("monitor_type", monitor_type)
-            .field("latency", latency_val)
-        )
-        
-        if port:
-            point = point.tag("port", str(port))
-            
-        if status_code > 0:
-             point = point.field("http_status", int(status_code))
-             
-        if ssl_days is not None:
-            point = point.field("ssl_expiry_days", int(ssl_days))
-            
-        write_api.write(bucket=INFLUXDB_BUCKET, org=INFLUXDB_ORG, record=point)
+        # 3. Write to SQLite
+        db = SessionLocal()
+        try:
+            ping_result = PingResultDB(
+                host_id=host_id,
+                latency=latency_val if latency_val >= 0 else None
+            )
+            db.add(ping_result)
+            db.commit()
+        except Exception as e:
+             logger.error(f"Error saving ping result to DB: {e}")
+             db.rollback()
+        finally:
+             db.close()
 
         # 4. Check for Status Change and Alert
         db = SessionLocal()
@@ -226,6 +216,8 @@ def ping_host(host_id: int, ip_address: str, name: str, port: int = None, monito
         # For simplicity, we won't state-track SSL alerts perfectly here to avoid spam, 
         # but a simple log for now. A real system needs a separate 'last_ssl_alert' timestamp.
         if ssl_days is not None and ssl_days < 7:
+             logger.warning(f"SSL Certificate for {name} expires in {ssl_days} days!")
+             
              logger.warning(f"SSL Certificate for {name} expires in {ssl_days} days!")
              
         db.close()
@@ -329,6 +321,16 @@ def update_jobs():
     # Run immediately
     scheduler.add_job(calculate_average_latency)
 
+    # Add cleanup job (daily)
+    scheduler.add_job(
+        cleanup_old_data,
+        'interval',
+        days=1,
+        id='cleanup_old_data',
+        replace_existing=True
+    )
+    logger.info("Added data cleanup job.")
+
 def start_scheduler():
     update_jobs()
     if not scheduler.running:
@@ -344,31 +346,25 @@ def calculate_average_latency():
     db: Session = SessionLocal()
     try:
         hosts = db.query(HostDB).filter(HostDB.enabled == True).all()
+        cutoff_time = datetime.utcnow() - timedelta(hours=6)
+
         for host in hosts:
             try:
-                # Query InfluxDB for mean latency over last 6 hours
-                query = f'''
-                from(bucket: "{INFLUXDB_BUCKET}")
-                  |> range(start: -6h)
-                  |> filter(fn: (r) => r["_measurement"] == "ping_result")
-                  |> filter(fn: (r) => r["host_id"] == "{host.id}")
-                  |> filter(fn: (r) => r["_field"] == "latency")
-                  |> filter(fn: (r) => r["_value"] >= 0)
-                  |> mean()
-                '''
-                result = query_api.query(org=INFLUXDB_ORG, query=query)
-                
-                avg_latency = None
-                for table in result:
-                    for record in table.records:
-                        avg_latency = record.get_value()
-                        break
+                # Query SQLite for mean latency over last 6 hours
+                # avg returns None if no rows
+                avg_latency = db.query(func.avg(PingResultDB.latency)).filter(
+                    PingResultDB.host_id == host.id,
+                    PingResultDB.timestamp >= cutoff_time,
+                    PingResultDB.latency != None
+                ).scalar()
                 
                 if avg_latency is not None:
                     host.average_latency = avg_latency
                     logger.info(f"Updated average latency for {host.name}: {avg_latency:.2f}ms")
                 else:
                     logger.info(f"No latency data found for {host.name} in last 6h")
+                    # Optionally reset average latency or keep last known?
+                    # host.average_latency = 0 
                     
             except Exception as e:
                 logger.error(f"Error calculating latency for {host.name}: {e}")
@@ -378,5 +374,32 @@ def calculate_average_latency():
         
     except Exception as e:
         logger.error(f"Error in calculate_average_latency: {e}")
+    finally:
+        db.close()
+
+def cleanup_old_data():
+    """
+    Deletes data older than 30 days to save space.
+    """
+    logger.info("Starting data cleanup...")
+    db = SessionLocal()
+    try:
+        cutoff_date = datetime.utcnow() - timedelta(days=30)
+        
+        # Cleanup Ping Results
+        deleted_pings = db.query(PingResultDB).filter(PingResultDB.timestamp < cutoff_date).delete()
+        
+        # Cleanup Speedtests
+        deleted_speedtests = db.query(SpeedTestResultDB).filter(SpeedTestResultDB.timestamp < cutoff_date).delete()
+        
+        # Cleanup Public IP History
+        deleted_ips = db.query(PublicIPHistoryDB).filter(PublicIPHistoryDB.timestamp < cutoff_date).delete()
+        
+        db.commit()
+        logger.info(f"Cleanup complete. Deleted: {deleted_pings} pings, {deleted_speedtests} speedtests, {deleted_ips} IP records.")
+        
+    except Exception as e:
+        logger.error(f"Error during data cleanup: {e}")
+        db.rollback()
     finally:
         db.close()

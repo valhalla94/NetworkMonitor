@@ -1,4 +1,5 @@
-from sqlalchemy import Column, Integer, String, Boolean, Float
+from sqlalchemy import Column, Integer, String, Boolean, Float, DateTime, ForeignKey
+from datetime import datetime
 from pydantic import BaseModel
 from database import Base
 
@@ -55,6 +56,21 @@ class PingResult(BaseModel):
     latency: float | None # None if timeout
     timestamp: str
 
+class PingResultDB(Base):
+    __tablename__ = "ping_results"
+
+    id = Column(Integer, primary_key=True, index=True)
+    host_id = Column(Integer, ForeignKey("hosts.id"), index=True)
+    latency = Column(Float, nullable=True) # Null for timeout
+    timestamp = Column(DateTime, default=datetime.utcnow, index=True)
+
+class PublicIPHistoryDB(Base):
+    __tablename__ = "public_ip_history"
+
+    id = Column(Integer, primary_key=True, index=True)
+    ip_address = Column(String, index=True)
+    timestamp = Column(DateTime, default=datetime.utcnow, index=True)
+
 class SpeedTestResultDB(Base):
     __tablename__ = "speedtest_results"
 
@@ -62,7 +78,10 @@ class SpeedTestResultDB(Base):
     download = Column(Float) # Mbps
     upload = Column(Float) # Mbps
     ping = Column(Float) # ms
-    timestamp = Column(String)
+    timestamp = Column(DateTime, default=datetime.utcnow, index=True)
+    server_id = Column(Integer, nullable=True)
+    server_name = Column(String, nullable=True)
+    server_country = Column(String, nullable=True)
 
 class SpeedTestResultBase(BaseModel):
     download: float

@@ -2,8 +2,7 @@ import os
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
-from influxdb_client import InfluxDBClient
-from influxdb_client.client.write_api import SYNCHRONOUS
+
 
 # SQLite Setup
 SQLITE_URL = "sqlite:///./data/hosts.db"
@@ -18,15 +17,9 @@ def get_db():
     finally:
         db.close()
 
-# InfluxDB Setup
-INFLUXDB_URL = os.getenv("INFLUXDB_URL", "http://influxdb:8086")
-INFLUXDB_TOKEN = os.getenv("INFLUXDB_TOKEN", "my-super-secret-auth-token")
-INFLUXDB_ORG = os.getenv("INFLUXDB_ORG", "my-org")
-INFLUXDB_BUCKET = os.getenv("INFLUXDB_BUCKET", "network_monitor")
+# InfluxDB Setup - REMOVED
+# Migrated to SQLite-only storage
 
-influx_client = InfluxDBClient(url=INFLUXDB_URL, token=INFLUXDB_TOKEN, org=INFLUXDB_ORG)
-write_api = influx_client.write_api(write_options=SYNCHRONOUS)
-query_api = influx_client.query_api()
 
 def migrate_db():
     """

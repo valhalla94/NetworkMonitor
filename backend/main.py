@@ -11,7 +11,7 @@ import auth
 import os
 from ping3 import ping
 from pydantic import BaseModel
-from database import get_db, query_api, INFLUXDB_BUCKET, INFLUXDB_ORG
+from database import get_db
 import notifications
 
 from notifications import notification_manager
@@ -124,66 +124,64 @@ def delete_host(host_id: int, db: Session = Depends(get_db), current_user: auth.
     return {"ok": True}
 
 @app.get("/metrics/{host_id}")
-def get_metrics(host_id: int, range: str = "-1h"):
+def get_metrics(host_id: int, range: str = "-1h", db: Session = Depends(get_db)):
     """
     Get metrics for a specific host.
-    range: Flux duration string (e.g., -1h, -24h, -7d)
+    range: Duration string (e.g., -1h, -24h, -7d)
     """
     
-    # Determine aggregation window based on range
-    window = "1m" # Default
-    if range == "-6h":
-        window = "5m"
-    elif range == "-24h":
-        window = "10m"
-    elif range == "-7d":
-        window = "1h"
-    elif range == "-30d":
-        window = "4h"
-    elif range == "-1y":
-        window = "1d"
-    elif range == "-2y":
-        window = "1d"
-        
-    # If range is small (-1h), we might not need aggregation, or use a very small one.
-    # But for consistency and to prevent over-fetching, we can stick to a small window or raw data.
-    # For -1h, raw data is usually fine (60*60/30 = 120 points).
+    # Calculate cutoff time
+    from datetime import datetime
+    now = datetime.utcnow()
     
-    aggregate_logic = ""
-    if range != "-1h":
-        aggregate_logic = f'|> aggregateWindow(every: {window}, fn: mean, createEmpty: false)'
-
-    query = f'''
-    from(bucket: "{INFLUXDB_BUCKET}")
-      |> range(start: {range})
-      |> filter(fn: (r) => r["_measurement"] == "ping_result")
-      |> filter(fn: (r) => r["host_id"] == "{host_id}")
-      |> filter(fn: (r) => r["_field"] == "latency")
-      {aggregate_logic}
-      |> yield(name: "mean")
-    '''
-    result = query_api.query(org=INFLUXDB_ORG, query=query)
+    if range == "-1h":
+        cutoff = now - timedelta(hours=1)
+    elif range == "-6h":
+        cutoff = now - timedelta(hours=6)
+    elif range == "-24h":
+        cutoff = now - timedelta(hours=24)
+    elif range == "-7d":
+        cutoff = now - timedelta(days=7)
+    elif range == "-30d":
+        cutoff = now - timedelta(days=30)
+    elif range == "-1y":
+        cutoff = now - timedelta(days=365)
+    else:
+        cutoff = now - timedelta(hours=1) # Default
+        
+    # Query SQLite
+    # Optimize: For long ranges, we might want to sample. 
+    # For now, we return raw data but maybe limit query if it's too huge.
+    results_db = db.query(models.PingResultDB).filter(
+        models.PingResultDB.host_id == host_id,
+        models.PingResultDB.timestamp >= cutoff
+    ).order_by(models.PingResultDB.timestamp.asc()).all()
+    
     results = []
     total_pings = 0
     successful_pings = 0
     total_latency = 0.0
     
-    for table in result:
-        for record in table.records:
-            val = record.get_value()
-            total_pings += 1
-            if val >= 0:
-                successful_pings += 1
-                total_latency += val
+    for record in results_db:
+        total_pings += 1
+        val = record.latency
+        
+        # In DB, latency is None for timeout. In frontend/influx logic, timeout might be -1 or handled differently.
+        # Frontend expects positive value for chart, or maybe -1 for down?
+        # Let's standardize: If None, send -1 (so chart shows gap or 0 line depending on frontend).
+        # But wait, logic says "if val >= 0: successful".
+        
+        latency_val = val if val is not None else -1.0
+        
+        if latency_val >= 0:
+            successful_pings += 1
+            total_latency += latency_val
+        
+        results.append({
+            "time": record.timestamp.isoformat() + "Z", # Add Z for UTC
+            "latency": latency_val
+        })
             
-            results.append({
-                "time": record.get_time(),
-                "latency": val
-            })
-            
-    # Note: Uptime calculation on aggregated data is an approximation.
-    # Ideally, we should calculate uptime on raw data or use a separate query.
-    # For now, this approximation is acceptable for the dashboard view.
     uptime = (successful_pings / total_pings * 100) if total_pings > 0 else 0
     avg_latency = (total_latency / successful_pings) if successful_pings > 0 else 0
     
@@ -194,34 +192,35 @@ def get_metrics(host_id: int, range: str = "-1h"):
     }
 
 @app.get("/status")
-def get_network_status():
+def get_network_status(db: Session = Depends(get_db)):
     """
     Returns the overall network status.
     If > 50% of enabled hosts are reachable in the last 5 minutes, network is UP.
     """
-    # Query last 5 minutes for all hosts
-    query = f'''
-    from(bucket: "{INFLUXDB_BUCKET}")
-      |> range(start: -5m)
-      |> filter(fn: (r) => r["_measurement"] == "ping_result")
-      |> filter(fn: (r) => r["_field"] == "latency")
-      |> last()
-    '''
-    result = query_api.query(org=INFLUXDB_ORG, query=query)
+    # Get all enabled hosts
+    hosts = db.query(models.HostDB).filter(models.HostDB.enabled == True).all()
+    
+    from datetime import datetime
+    cutoff = datetime.utcnow() - timedelta(minutes=5)
     
     total_hosts = 0
     reachable_hosts = 0
     total_latency = 0.0
     latency_count = 0
     
-    for table in result:
-        for record in table.records:
-            total_hosts += 1
-            val = record.get_value()
-            if val >= 0:
-                reachable_hosts += 1
-                total_latency += val
-                latency_count += 1
+    for host in hosts:
+        total_hosts += 1
+        # Get last ping result
+        last_ping = db.query(models.PingResultDB).filter(
+            models.PingResultDB.host_id == host.id,
+            models.PingResultDB.timestamp >= cutoff
+        ).order_by(models.PingResultDB.timestamp.desc()).first()
+        
+        if last_ping and last_ping.latency is not None:
+             # It responded
+             reachable_hosts += 1
+             total_latency += last_ping.latency
+             latency_count += 1
                 
     if total_hosts == 0:
         return {"status": "UNKNOWN", "details": "No data", "global_avg_latency": 0}
@@ -237,26 +236,18 @@ def get_network_status():
     }
 
 @app.get("/public-ip-history")
-def get_public_ip_history():
+def get_public_ip_history(db: Session = Depends(get_db)):
     """
     Get the history of public IP addresses for the last 2 years.
     """
-    query = f'''
-    from(bucket: "{INFLUXDB_BUCKET}")
-      |> range(start: -2y)
-      |> filter(fn: (r) => r["_measurement"] == "public_ip_history")
-      |> filter(fn: (r) => r["_field"] == "ip_address")
-      |> sort(columns: ["_time"], desc: true)
-    '''
-    result = query_api.query(org=INFLUXDB_ORG, query=query)
+    history_db = db.query(models.PublicIPHistoryDB).order_by(models.PublicIPHistoryDB.timestamp.desc()).limit(100).all()
     
     history = []
-    for table in result:
-        for record in table.records:
-            history.append({
-                "time": record.get_time(),
-                "ip_address": record.get_value()
-            })
+    for record in history_db:
+        history.append({
+            "time": record.timestamp.isoformat() + "Z",
+            "ip_address": record.ip_address
+        })
             
             
     return history
@@ -270,28 +261,21 @@ def run_speedtest_manual():
     return {"message": "Speed test started"}
 
 @app.get("/speedtest/history", response_model=List[models.SpeedTestResultBase])
-def get_speedtest_history():
+def get_speedtest_history(db: Session = Depends(get_db)):
     """
     Get the history of speed test results for the last 30 days.
     """
-    query = f'''
-    from(bucket: "{INFLUXDB_BUCKET}")
-      |> range(start: -30d)
-      |> filter(fn: (r) => r["_measurement"] == "speedtest_result")
-      |> pivot(rowKey:["_time"], columnKey: ["_field"], valueColumn: "_value")
-      |> sort(columns: ["_time"], desc: true)
-    '''
-    result = query_api.query(org=INFLUXDB_ORG, query=query)
+    # Limit to last 50 results to prevent overloaded UI
+    results = db.query(models.SpeedTestResultDB).order_by(models.SpeedTestResultDB.timestamp.desc()).limit(50).all()
     
     history = []
-    for table in result:
-        for record in table.records:
-            history.append({
-                "timestamp": record.get_time().isoformat(),
-                "download": record.values.get("download", 0),
-                "upload": record.values.get("upload", 0),
-                "ping": record.values.get("ping", 0)
-            })
+    for record in results:
+        history.append({
+            "timestamp": record.timestamp.isoformat() + "Z",
+            "download": record.download,
+            "upload": record.upload,
+            "ping": record.ping
+        })
             
     return history
 
