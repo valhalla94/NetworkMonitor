@@ -330,7 +330,9 @@ def update_jobs():
             id='check_public_ip',
             replace_existing=True
         )
+
         logger.info("Added public IP check job.")
+        scheduler.add_job(check_public_ip)
 
     # Add speedtest job (every 6 hours)
     if not scheduler.get_job('run_speedtest'):
