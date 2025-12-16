@@ -13,6 +13,8 @@ import ssl
 from datetime import datetime
 from urllib.parse import urlparse
 
+from notifications import notification_manager
+
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
@@ -192,6 +194,41 @@ def ping_host(host_id: int, ip_address: str, name: str, port: int = None, monito
             point = point.field("ssl_expiry_days", int(ssl_days))
             
         write_api.write(bucket=INFLUXDB_BUCKET, org=INFLUXDB_ORG, record=point)
+
+        # 4. Check for Status Change and Alert
+        db = SessionLocal()
+        host = db.query(HostDB).filter(HostDB.id == host_id).first()
+        
+        current_status = "UP" if latency_val >= 0 else "DOWN"
+        
+        if host and host.last_status != current_status:
+            logger.info(f"Host {name} status changed: {host.last_status} -> {current_status}")
+            
+            # Send Notification if not in maintenance
+            if not host.maintenance:
+                icon = "🔴" if current_status == "DOWN" else "🟢"
+                title = f"{icon} Host {name} is {current_status}"
+                body = f"Host: {name} ({ip_address})\nState: {current_status}\nTime: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+                
+                # Add detail for DOWN
+                if current_status == "DOWN":
+                    body += "\nDid not respond to ping/check."
+                
+                notification_manager.send_notification(title, body)
+            else:
+                logger.info(f"Notification suppressed for {name} due to maintenance mode.")
+            
+            # Update last_status
+            host.last_status = current_status
+            db.commit()
+            
+        # Check for SSL Expiry Alert (e.g. < 7 days) if not already alerted roughly?
+        # For simplicity, we won't state-track SSL alerts perfectly here to avoid spam, 
+        # but a simple log for now. A real system needs a separate 'last_ssl_alert' timestamp.
+        if ssl_days is not None and ssl_days < 7:
+             logger.warning(f"SSL Certificate for {name} expires in {ssl_days} days!")
+             
+        db.close()
 
     except Exception as e:
         logger.error(f"Error checking {name}: {e}")

@@ -31,5 +31,7 @@ export const getPublicIpHistory = () => api.get('/public-ip-history');
 export const getSpeedTestHistory = () => api.get('/speedtest/history');
 export const runSpeedTest = () => api.post('/speedtest/run');
 export const quickPing = (target) => api.post('/tools/ping', { target });
+export const getSettings = () => api.get('/settings');
+export const updateNotificationSettings = (url) => api.post('/settings/notifications', { key: 'notification_url', value: url });
 
 export default api;

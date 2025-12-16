@@ -12,6 +12,9 @@ import os
 from ping3 import ping
 from pydantic import BaseModel
 from database import get_db, query_api, INFLUXDB_BUCKET, INFLUXDB_ORG
+import notifications
+
+from notifications import notification_manager
 
 # Create tables
 database.migrate_db()
@@ -65,6 +68,12 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
 @app.on_event("startup")
 def startup_event():
     scheduler.start_scheduler()
+    # Initialize notification manager with DB
+    db = database.SessionLocal()
+    try:
+        notification_manager.load_config(db)
+    finally:
+        db.close()
 
 @app.post("/hosts/", response_model=models.Host)
 def create_host(host: models.HostCreate, db: Session = Depends(get_db), current_user: auth.User = Depends(get_current_user)):
@@ -301,3 +310,26 @@ def quick_ping(request: QuickPingRequest):
         return {"target": request.target, "reachable": True, "latency": latency}
     except Exception as e:
         return {"target": request.target, "reachable": False, "latency": None, "error": str(e)}
+
+@app.get("/settings", response_model=List[models.Settings])
+def get_settings(db: Session = Depends(get_db), current_user: auth.User = Depends(get_current_user)):
+    return db.query(models.SettingsDB).all()
+
+@app.post("/settings/notifications")
+def update_notification_settings(settings: models.SettingsBase, db: Session = Depends(get_db), current_user: auth.User = Depends(get_current_user)):
+    db_setting = db.query(models.SettingsDB).filter(models.SettingsDB.key == "notification_url").first()
+    if not db_setting:
+        db_setting = models.SettingsDB(key="notification_url", value=settings.value)
+        db.add(db_setting)
+    else:
+        db_setting.value = settings.value
+    
+    db.commit()
+    
+    # Reload config
+    notification_manager.load_config(db)
+    
+    # Test notification
+    notification_manager.send_notification("NetworkMonitor", "Notification configuration updated successfully.")
+    
+    return {"message": "Settings updated"}

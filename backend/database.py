@@ -139,5 +139,21 @@ def migrate_db():
                 db.rollback()
     except Exception as e:
         logger.error(f"Migration check failed: {e}")
+
+    try:
+        # Check if last_status column exists
+        try:
+            db.execute(text("SELECT last_status FROM hosts LIMIT 1"))
+        except OperationalError:
+            logger.info("Column 'last_status' missing in 'hosts' table. Adding it...")
+            try:
+                db.execute(text("ALTER TABLE hosts ADD COLUMN last_status VARCHAR DEFAULT 'UNKNOWN'"))
+                db.commit()
+                logger.info("Column 'last_status' added successfully.")
+            except Exception as e:
+                logger.error(f"Failed to add column 'last_status': {e}")
+                db.rollback()
+    except Exception as e:
+        logger.error(f"Migration check failed for last_status: {e}")
     finally:
         db.close()

@@ -18,6 +18,13 @@ class HostDB(Base):
     expected_status_code = Column(Integer, default=200, nullable=True)
     group_name = Column(String, nullable=True, default="General")
     maintenance = Column(Boolean, default=False)
+    last_status = Column(String, default="UNKNOWN") # UP, DOWN, UNKNOWN
+
+class SettingsDB(Base):
+    __tablename__ = "settings"
+
+    key = Column(String, primary_key=True, index=True)
+    value = Column(String)
 
 # Pydantic Models
 class HostBase(BaseModel):
@@ -32,6 +39,7 @@ class HostBase(BaseModel):
     expected_status_code: int | None = 200
     group_name: str | None = "General"
     maintenance: bool = False
+    last_status: str | None = "UNKNOWN"
 
 class HostCreate(HostBase):
     pass
@@ -65,5 +73,13 @@ class SpeedTestResultBase(BaseModel):
 class SpeedTestResult(SpeedTestResultBase):
     id: int
 
+    class Config:
+        from_attributes = True
+
+class SettingsBase(BaseModel):
+    key: str
+    value: str
+
+class Settings(SettingsBase):
     class Config:
         from_attributes = True
