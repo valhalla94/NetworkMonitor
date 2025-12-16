@@ -111,6 +111,32 @@ def migrate_db():
             except Exception as e:
                 logger.error(f"Failed to add column 'expected_status_code': {e}")
                 db.rollback()
+
+        # Check if group_name column exists
+        try:
+            db.execute(text("SELECT group_name FROM hosts LIMIT 1"))
+        except OperationalError:
+            logger.info("Column 'group_name' missing in 'hosts' table. Adding it...")
+            try:
+                db.execute(text("ALTER TABLE hosts ADD COLUMN group_name VARCHAR DEFAULT 'General'"))
+                db.commit()
+                logger.info("Column 'group_name' added successfully.")
+            except Exception as e:
+                logger.error(f"Failed to add column 'group_name': {e}")
+                db.rollback()
+
+        # Check if maintenance column exists
+        try:
+            db.execute(text("SELECT maintenance FROM hosts LIMIT 1"))
+        except OperationalError:
+            logger.info("Column 'maintenance' missing in 'hosts' table. Adding it...")
+            try:
+                db.execute(text("ALTER TABLE hosts ADD COLUMN maintenance BOOLEAN DEFAULT 0"))
+                db.commit()
+                logger.info("Column 'maintenance' added successfully.")
+            except Exception as e:
+                logger.error(f"Failed to add column 'maintenance': {e}")
+                db.rollback()
     except Exception as e:
         logger.error(f"Migration check failed: {e}")
     finally:

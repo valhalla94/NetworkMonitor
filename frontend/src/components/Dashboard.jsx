@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { getHosts, getMetrics, getNetworkStatus, getPublicIpHistory, getSpeedTestHistory, runSpeedTest, quickPing } from '../api';
-import { Activity, Server, Wifi, WifiOff, Clock, Calendar, Globe, History, Timer, Gauge, ArrowDown, ArrowUp, Play, Loader2, Search, Zap, Lock } from 'lucide-react';
+import { Activity, Server, Wifi, WifiOff, Clock, Calendar, Globe, History, Timer, Gauge, ArrowDown, ArrowUp, Play, Loader2, Search, Zap, Lock, Folder } from 'lucide-react';
 import { format, formatDistanceToNow } from 'date-fns';
 
 const Dashboard = () => {
@@ -395,59 +395,90 @@ const Dashboard = () => {
                 </div>
             </div>
 
-            {/* Host Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                {hosts.map(host => (
-                    <div
-                        key={host.id}
-                        onClick={() => setSelectedHost(host)}
-                        className={`glass-panel p-6 rounded-2xl cursor-pointer transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl group ${selectedHost?.id === host.id ? 'ring-2 ring-blue-500/50 bg-slate-800/60' : 'hover:bg-slate-800/60'}`}
-                    >
-                        <div className="flex items-center justify-between">
-                            <div className="flex items-center space-x-4">
-                                <div className="p-3 rounded-xl bg-blue-500/10 text-blue-400 group-hover:bg-blue-500/20 transition-colors">
-                                    <Server className="w-6 h-6" />
-                                </div>
-                                <div>
-                                    <h3 className="font-bold text-lg text-white group-hover:text-blue-400 transition-colors">{host.name}</h3>
-                                    <p className="text-sm text-slate-400 font-mono">
-                                        {host.ip_address}
-                                        {host.port && <span className="text-slate-500 ml-1">:{host.port}</span>}
-                                    </p>
-                                    {host.average_latency !== null && (
-                                        <p className="text-xs text-slate-500 mt-1 flex items-center gap-2">
-                                            <span>
-                                                Avg (6h): <span className="text-blue-300 font-medium">{host.average_latency.toFixed(2)}ms</span>
-                                            </span>
+            {/* Host Groups */}
+            {(() => {
+                // Determine groups
+                const groups = hosts.reduce((acc, host) => {
+                    const group = host.group_name || 'General';
+                    if (!acc[group]) acc[group] = [];
+                    acc[group].push(host);
+                    return acc;
+                }, {});
 
-                                            {host.monitor_type === 'http' && (
-                                                <span className="px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-400 font-bold border border-purple-500/30">
-                                                    HTTP
-                                                </span>
-                                            )}
-                                        </p>
+                // Ensure 'General' is always last or present if needed
+                const groupNames = Object.keys(groups).sort((a, b) => {
+                    if (a === 'General') return 1;
+                    if (b === 'General') return -1;
+                    return a.localeCompare(b);
+                });
+
+                return groupNames.map(groupName => (
+                    <div key={groupName} className="mb-4">
+                        <div className="flex items-center gap-2 mb-4">
+                            <Folder className="w-5 h-5 text-slate-400" />
+                            <h3 className="text-xl font-bold text-white capitalize">{groupName}</h3>
+                            <span className="text-sm text-slate-500 bg-slate-800 px-2 py-0.5 rounded-full">{groups[groupName].length}</span>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                            {groups[groupName].map(host => (
+                                <div
+                                    key={host.id}
+                                    onClick={() => setSelectedHost(host)}
+                                    className={`glass-panel p-6 rounded-2xl cursor-pointer transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl group relative overflow-hidden ${selectedHost?.id === host.id ? 'ring-2 ring-blue-500/50 bg-slate-800/60' : 'hover:bg-slate-800/60'}`}
+                                >
+                                    {host.maintenance && (
+                                        <div className="absolute top-0 right-0 bg-amber-500/90 text-slate-900 text-[10px] font-bold px-4 py-1 rotate-45 translate-x-3 translate-y-2 shadow-lg z-10 w-24 text-center">
+                                            MAINT
+                                        </div>
                                     )}
+                                    <div className={`flex items-center justify-between ${host.maintenance ? 'opacity-70' : ''}`}>
+                                        <div className="flex items-center space-x-4">
+                                            <div className={`p-3 rounded-xl transition-colors ${host.maintenance ? 'bg-amber-500/10 text-amber-400' : 'bg-blue-500/10 text-blue-400 group-hover:bg-blue-500/20'}`}>
+                                                <Server className="w-6 h-6" />
+                                            </div>
+                                            <div>
+                                                <h3 className="font-bold text-lg text-white group-hover:text-blue-400 transition-colors">{host.name}</h3>
+                                                <p className="text-sm text-slate-400 font-mono">
+                                                    {host.ip_address}
+                                                    {host.port && <span className="text-slate-500 ml-1">:{host.port}</span>}
+                                                </p>
+                                                {host.average_latency !== null && (
+                                                    <p className="text-xs text-slate-500 mt-1 flex items-center gap-2">
+                                                        <span>
+                                                            Avg (6h): <span className="text-blue-300 font-medium">{host.average_latency.toFixed(2)}ms</span>
+                                                        </span>
 
-                                    {/* SSL and Port Badges */}
-                                    <div className="flex flex-wrap gap-2 mt-2">
-                                        {host.monitor_type === 'tcp' && (
-                                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-orange-500/10 text-orange-400 border border-orange-500/20">
-                                                TCP:{host.port}
-                                            </span>
-                                        )}
-                                        {host.ssl_monitor && (
-                                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center gap-1">
-                                                <Lock className="w-3 h-3" /> SSL
-                                            </span>
-                                        )}
+                                                        {host.monitor_type === 'http' && (
+                                                            <span className="px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-400 font-bold border border-purple-500/30">
+                                                                HTTP
+                                                            </span>
+                                                        )}
+                                                    </p>
+                                                )}
+
+                                                {/* SSL and Port Badges */}
+                                                <div className="flex flex-wrap gap-2 mt-2">
+                                                    {host.monitor_type === 'tcp' && (
+                                                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-orange-500/10 text-orange-400 border border-orange-500/20">
+                                                            TCP:{host.port}
+                                                        </span>
+                                                    )}
+                                                    {host.ssl_monitor && (
+                                                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center gap-1">
+                                                            <Lock className="w-3 h-3" /> SSL
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div className={`w-3 h-3 rounded-full shadow-lg shadow-current ${host.maintenance ? 'bg-amber-400 text-amber-400' : host.enabled ? 'bg-emerald-400 text-emerald-400' : 'bg-rose-400 text-rose-400'}`}></div>
                                     </div>
                                 </div>
-                            </div>
-                            <div className={`w-3 h-3 rounded-full shadow-lg shadow-current ${host.enabled ? 'bg-emerald-400 text-emerald-400' : 'bg-rose-400 text-rose-400'}`}></div>
+                            ))}
                         </div>
                     </div>
-                ))}
-            </div>
+                ));
+            })()}
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 {/* Metrics Chart */}

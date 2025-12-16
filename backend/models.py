@@ -16,6 +16,8 @@ class HostDB(Base):
     monitor_type = Column(String, default="icmp") # icmp, tcp, http
     ssl_monitor = Column(Boolean, default=False)
     expected_status_code = Column(Integer, default=200, nullable=True)
+    group_name = Column(String, nullable=True, default="General")
+    maintenance = Column(Boolean, default=False)
 
 # Pydantic Models
 class HostBase(BaseModel):
@@ -28,6 +30,8 @@ class HostBase(BaseModel):
     monitor_type: str = "icmp"
     ssl_monitor: bool = False
     expected_status_code: int | None = 200
+    group_name: str | None = "General"
+    maintenance: bool = False
 
 class HostCreate(HostBase):
     pass
