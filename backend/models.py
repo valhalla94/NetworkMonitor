@@ -20,6 +20,8 @@ class HostDB(Base):
     group_name = Column(String, nullable=True, default="General")
     maintenance = Column(Boolean, default=False)
     last_status = Column(String, default="UNKNOWN") # UP, DOWN, UNKNOWN
+    ssl_expiry_days = Column(Integer, nullable=True)
+    ssl_error = Column(String, nullable=True)
 
 class SettingsDB(Base):
     __tablename__ = "settings"
@@ -41,6 +43,8 @@ class HostBase(BaseModel):
     group_name: str | None = "General"
     maintenance: bool = False
     last_status: str | None = "UNKNOWN"
+    ssl_expiry_days: int | None = None
+    ssl_error: str | None = None
 
 class HostCreate(HostBase):
     pass

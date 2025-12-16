@@ -329,6 +329,23 @@ const HostManager = ({ onHostAdded, hosts, onHostDeleted }) => {
                                                         }`}>
                                                         {host.monitor_type === 'tcp' ? `TCP:${host.port}` : host.monitor_type?.toUpperCase() || 'ICMP'}
                                                     </span>
+
+                                                    {host.ssl_monitor && (
+                                                        <div className="mt-2">
+                                                            {host.ssl_expiry_days !== null ? (
+                                                                <span className={`px-2 py-0.5 rounded text-[10px] font-bold border ${host.ssl_expiry_days > 30 ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
+                                                                        host.ssl_expiry_days > 7 ? 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20' :
+                                                                            'bg-red-500/10 text-red-400 border-red-500/20'
+                                                                    }`}>
+                                                                    SSL: {host.ssl_expiry_days}d
+                                                                </span>
+                                                            ) : (
+                                                                <span className="px-2 py-0.5 rounded text-[10px] bg-slate-700 text-slate-400 border border-slate-600">
+                                                                    SSL: Checking...
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                    )}
                                                 </td>
                                                 <td className="p-4 text-slate-300">{host.interval}s</td>
                                                 <td className="p-4 text-right">

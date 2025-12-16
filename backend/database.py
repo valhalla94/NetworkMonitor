@@ -7,6 +7,15 @@ from sqlalchemy.orm import sessionmaker
 # SQLite Setup
 SQLITE_URL = "sqlite:///./data/hosts.db"
 engine = create_engine(SQLITE_URL, connect_args={"check_same_thread": False})
+
+# Enable WAL mode for better concurrency
+from sqlalchemy import event
+@event.listens_for(engine, "connect")
+def set_sqlite_pragma(dbapi_connection, connection_record):
+    cursor = dbapi_connection.cursor()
+    cursor.execute("PRAGMA journal_mode=WAL")
+    cursor.close()
+
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
@@ -148,5 +157,55 @@ def migrate_db():
                 db.rollback()
     except Exception as e:
         logger.error(f"Migration check failed for last_status: {e}")
+
+    try:
+        # Check if ssl_expiry_days column exists
+        try:
+            db.execute(text("SELECT ssl_expiry_days FROM hosts LIMIT 1"))
+        except OperationalError:
+            logger.info("Column 'ssl_expiry_days' missing in 'hosts' table. Adding it...")
+            try:
+                db.execute(text("ALTER TABLE hosts ADD COLUMN ssl_expiry_days INTEGER"))
+                db.commit()
+                logger.info("Column 'ssl_expiry_days' added successfully.")
+            except Exception as e:
+                logger.error(f"Failed to add column 'ssl_expiry_days': {e}")
+                db.rollback()
+
+
+        # Check if ssl_error column exists
+        try:
+            db.execute(text("SELECT ssl_error FROM hosts LIMIT 1"))
+        except OperationalError:
+            logger.info("Column 'ssl_error' missing in 'hosts' table. Adding it...")
+            try:
+                db.execute(text("ALTER TABLE hosts ADD COLUMN ssl_error VARCHAR"))
+                db.commit()
+                logger.info("Column 'ssl_error' added successfully.")
+            except Exception as e:
+                logger.error(f"Failed to add column 'ssl_error': {e}")
+                db.rollback()
+
+    except Exception as e:
+        logger.error(f"Migration check failed for SSL columns: {e}")
+
+    try:
+         # Check if server_id column exists in speedtest_results
+        try:
+            db.execute(text("SELECT server_id FROM speedtest_results LIMIT 1"))
+        except OperationalError:
+            logger.info("Column 'server_id' missing in 'speedtest_results' table. Adding it...")
+            try:
+                db.execute(text("ALTER TABLE speedtest_results ADD COLUMN server_id INTEGER"))
+                db.execute(text("ALTER TABLE speedtest_results ADD COLUMN server_name VARCHAR"))
+                db.execute(text("ALTER TABLE speedtest_results ADD COLUMN server_country VARCHAR"))
+                db.commit()
+                logger.info("Speedtest columns added successfully.")
+            except Exception as e:
+                logger.error(f"Failed to add speedtest columns: {e}")
+                db.rollback()
+    except Exception as e:
+        logger.error(f"Migration check failed for Speedtest columns: {e}")
+
     finally:
         db.close()

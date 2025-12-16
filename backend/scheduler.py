@@ -107,6 +107,57 @@ def check_http(url: str, expected_status: int = 200, timeout: int = 5):
         logger.warning(f"HTTP Check failed for {url}: {e}")
         return False, -1.0, 0
 
+        return False, -1.0, 0
+
+def check_ssl_job():
+    """
+    Checks SSL expiry for all hosts with ssl_monitor enabled.
+    This job runs daily.
+    """
+    logger.info("Starting SSL Certificate Check Job...")
+    db: Session = SessionLocal()
+    try:
+        hosts = db.query(HostDB).filter(HostDB.ssl_monitor == True, HostDB.enabled == True).all()
+        
+        for host in hosts:
+            try:
+                # Extract hostname from URL if needed
+                target_host = host.ip_address
+                if target_host.startswith('http'):
+                     parsed = urlparse(target_host)
+                     target_host = parsed.netloc.split(':')[0] # Remove port if present
+                
+                # Check expiry
+                days_remaining = check_ssl_expiry(target_host, host.port if host.port else 443)
+                
+                if days_remaining is not None:
+                    # Update DB
+                    host.ssl_expiry_days = days_remaining
+                    host.ssl_error = None
+                    logger.info(f"SSL Check {host.name}: {days_remaining} days remaining")
+                    
+                    # Alert Logic (30, 14, 7, 3, 1 days)
+                    alert_days = [30, 14, 7, 3, 1]
+                    if days_remaining in alert_days or days_remaining <= 0:
+                        icon = "⚠️" if days_remaining > 0 else "🚨"
+                        title = f"{icon} SSL Expiry Warning: {host.name}"
+                        body = f"Host: {host.name}\nDays Remaining: {days_remaining}\nURL: {host.ip_address}"
+                        
+                        notification_manager.send_notification(title, body)
+                else:
+                     host.ssl_error = "Failed to retrieve certificate"
+                     logger.warning(f"SSL Check failed for {host.name}")
+                     
+            except Exception as e:
+                host.ssl_error = str(e)
+                logger.error(f"Error checking SSL for {host.name}: {e}")
+                
+        db.commit()
+    except Exception as e:
+        logger.error(f"Error in check_ssl_job: {e}")
+    finally:
+         db.close()
+
 def check_ssl_expiry(host: str, port: int = 443):
     try:
         context = ssl.create_default_context()
@@ -120,11 +171,11 @@ def check_ssl_expiry(host: str, port: int = 443):
         logger.warning(f"SSL Check failed for {host}: {e}")
         return None
 
-def ping_host(host_id: int, ip_address: str, name: str, port: int = None, monitor_type: str = 'icmp', ssl_monitor: bool = False, expected_status: int = 200):
+def ping_host(host_id: int, ip_address: str, name: str, port: int = None, monitor_type: str = 'icmp', expected_status: int = 200):
     try:
         latency_val = -1.0
         status_code = 0
-        ssl_days = None
+        status_code = 0
         
         # 1. Perform Connectivity Check based on Monitor Type
         if monitor_type == 'http':
@@ -157,17 +208,9 @@ def ping_host(host_id: int, ip_address: str, name: str, port: int = None, monito
                 latency_val = float(latency)
                 logger.info(f"Ping {name} ({ip_address}): {latency_val}ms")
 
-        # 2. Perform SSL Check if enabled
-        if ssl_monitor:
-            # Extract hostname from URL if needed
-            target_host = ip_address
-            if target_host.startswith('http'):
-                 parsed = urlparse(target_host)
-                 target_host = parsed.netloc.split(':')[0] # Remove port if present
-            
-            ssl_days = check_ssl_expiry(target_host, port if port else 443)
-            if ssl_days is not None:
-                logger.info(f"SSL Check {name}: {ssl_days} days remaining")
+        # 2. Perform SSL Check if enabled -> MOVED TO DEDICATED JOB
+        # if ssl_monitor:
+        #    ...
 
         # 3. Write to InfluxDB
         # 3. Write to SQLite
@@ -208,18 +251,11 @@ def ping_host(host_id: int, ip_address: str, name: str, port: int = None, monito
             else:
                 logger.info(f"Notification suppressed for {name} due to maintenance mode.")
             
+            
             # Update last_status
             host.last_status = current_status
             db.commit()
             
-        # Check for SSL Expiry Alert (e.g. < 7 days) if not already alerted roughly?
-        # For simplicity, we won't state-track SSL alerts perfectly here to avoid spam, 
-        # but a simple log for now. A real system needs a separate 'last_ssl_alert' timestamp.
-        if ssl_days is not None and ssl_days < 7:
-             logger.warning(f"SSL Certificate for {name} expires in {ssl_days} days!")
-             
-             logger.warning(f"SSL Certificate for {name} expires in {ssl_days} days!")
-             
         db.close()
 
     except Exception as e:
@@ -272,7 +308,7 @@ def update_jobs():
                     ping_host,
                     'interval',
                     seconds=host.interval,
-                    args=[host.id, host.ip_address, host.name, host.port, host.monitor_type, host.ssl_monitor, host.expected_status_code],
+                    args=[host.id, host.ip_address, host.name, host.port, host.monitor_type, host.expected_status_code],
                     id=f"ping_{host.id}",
                     replace_existing=True
                 )
@@ -330,6 +366,19 @@ def update_jobs():
         replace_existing=True
     )
     logger.info("Added data cleanup job.")
+
+    # Add SSL check job (daily)
+    scheduler.add_job(
+        check_ssl_job,
+        'interval',
+        days=1,
+        id='check_ssl_job',
+        replace_existing=True
+    )
+    logger.info("Added SSL check job.")
+    
+    # Run SSL check immediately on startup
+    scheduler.add_job(check_ssl_job)
 
 def start_scheduler():
     update_jobs()
