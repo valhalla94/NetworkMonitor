@@ -72,6 +72,45 @@ def migrate_db():
             except Exception as e:
                 logger.error(f"Failed to add column 'port': {e}")
                 db.rollback()
+
+        # Check if monitor_type column exists
+        try:
+            db.execute(text("SELECT monitor_type FROM hosts LIMIT 1"))
+        except OperationalError:
+            logger.info("Column 'monitor_type' missing in 'hosts' table. Adding it...")
+            try:
+                db.execute(text("ALTER TABLE hosts ADD COLUMN monitor_type VARCHAR DEFAULT 'icmp'"))
+                db.commit()
+                logger.info("Column 'monitor_type' added successfully.")
+            except Exception as e:
+                logger.error(f"Failed to add column 'monitor_type': {e}")
+                db.rollback()
+
+        # Check if ssl_monitor column exists
+        try:
+            db.execute(text("SELECT ssl_monitor FROM hosts LIMIT 1"))
+        except OperationalError:
+            logger.info("Column 'ssl_monitor' missing in 'hosts' table. Adding it...")
+            try:
+                db.execute(text("ALTER TABLE hosts ADD COLUMN ssl_monitor BOOLEAN DEFAULT 0"))
+                db.commit()
+                logger.info("Column 'ssl_monitor' added successfully.")
+            except Exception as e:
+                logger.error(f"Failed to add column 'ssl_monitor': {e}")
+                db.rollback()
+
+        # Check if expected_status_code column exists
+        try:
+            db.execute(text("SELECT expected_status_code FROM hosts LIMIT 1"))
+        except OperationalError:
+            logger.info("Column 'expected_status_code' missing in 'hosts' table. Adding it...")
+            try:
+                db.execute(text("ALTER TABLE hosts ADD COLUMN expected_status_code INTEGER DEFAULT 200"))
+                db.commit()
+                logger.info("Column 'expected_status_code' added successfully.")
+            except Exception as e:
+                logger.error(f"Failed to add column 'expected_status_code': {e}")
+                db.rollback()
     except Exception as e:
         logger.error(f"Migration check failed: {e}")
     finally:

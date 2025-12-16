@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { getHosts, getMetrics, getNetworkStatus, getPublicIpHistory, getSpeedTestHistory, runSpeedTest, quickPing } from '../api';
-import { Activity, Server, Wifi, WifiOff, Clock, Calendar, Globe, History, Timer, Gauge, ArrowDown, ArrowUp, Play, Loader2, Search, Zap } from 'lucide-react';
+import { Activity, Server, Wifi, WifiOff, Clock, Calendar, Globe, History, Timer, Gauge, ArrowDown, ArrowUp, Play, Loader2, Search, Zap, Lock } from 'lucide-react';
 import { format, formatDistanceToNow } from 'date-fns';
 
 const Dashboard = () => {
@@ -415,10 +415,32 @@ const Dashboard = () => {
                                         {host.port && <span className="text-slate-500 ml-1">:{host.port}</span>}
                                     </p>
                                     {host.average_latency !== null && (
-                                        <p className="text-xs text-slate-500 mt-1">
-                                            Avg (6h): <span className="text-blue-300 font-medium">{host.average_latency.toFixed(2)}ms</span>
+                                        <p className="text-xs text-slate-500 mt-1 flex items-center gap-2">
+                                            <span>
+                                                Avg (6h): <span className="text-blue-300 font-medium">{host.average_latency.toFixed(2)}ms</span>
+                                            </span>
+
+                                            {host.monitor_type === 'http' && (
+                                                <span className="px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-400 font-bold border border-purple-500/30">
+                                                    HTTP
+                                                </span>
+                                            )}
                                         </p>
                                     )}
+
+                                    {/* SSL and Port Badges */}
+                                    <div className="flex flex-wrap gap-2 mt-2">
+                                        {host.monitor_type === 'tcp' && (
+                                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-orange-500/10 text-orange-400 border border-orange-500/20">
+                                                TCP:{host.port}
+                                            </span>
+                                        )}
+                                        {host.ssl_monitor && (
+                                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center gap-1">
+                                                <Lock className="w-3 h-3" /> SSL
+                                            </span>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
                             <div className={`w-3 h-3 rounded-full shadow-lg shadow-current ${host.enabled ? 'bg-emerald-400 text-emerald-400' : 'bg-rose-400 text-rose-400'}`}></div>

@@ -7,8 +7,15 @@ const HostManager = ({ onHostAdded, hosts, onHostDeleted }) => {
     const [ip, setIp] = useState('');
     const [port, setPort] = useState('');
     const [interval, setInterval] = useState(30);
+    const [monitorType, setMonitorType] = useState('icmp');
+    const [sslMonitor, setSslMonitor] = useState(false);
+    const [expectedStatus, setExpectedStatus] = useState(200);
+
     const [editingHost, setEditingHost] = useState(null);
-    const [editForm, setEditForm] = useState({ name: '', ip_address: '', port: '', interval: 30, enabled: true });
+    const [editForm, setEditForm] = useState({
+        name: '', ip_address: '', port: '', interval: 30, enabled: true,
+        monitor_type: 'icmp', ssl_monitor: false, expected_status_code: 200
+    });
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -18,12 +25,18 @@ const HostManager = ({ onHostAdded, hosts, onHostDeleted }) => {
                 ip_address: ip,
                 port: port ? parseInt(port) : null,
                 interval: parseInt(interval),
-                enabled: true
+                enabled: true,
+                monitor_type: monitorType,
+                ssl_monitor: sslMonitor,
+                expected_status_code: parseInt(expectedStatus)
             });
             setName('');
             setIp('');
             setPort('');
             setInterval(30);
+            setMonitorType('icmp');
+            setSslMonitor(false);
+            setExpectedStatus(200);
             if (onHostAdded) onHostAdded();
         } catch (error) {
             console.error("Error creating host:", error);
@@ -49,7 +62,10 @@ const HostManager = ({ onHostAdded, hosts, onHostDeleted }) => {
             ip_address: host.ip_address,
             port: host.port || '',
             interval: host.interval,
-            enabled: host.enabled
+            enabled: host.enabled,
+            monitor_type: host.monitor_type || 'icmp',
+            ssl_monitor: host.ssl_monitor || false,
+            expected_status_code: host.expected_status_code || 200
         });
     };
 
@@ -112,6 +128,61 @@ const HostManager = ({ onHostAdded, hosts, onHostDeleted }) => {
                         </div>
                     </div>
 
+
+                    <div className="space-y-2">
+                        <label className="text-sm font-medium text-slate-300 ml-1">Monitor Type</label>
+                        <select
+                            value={monitorType}
+                            onChange={(e) => setMonitorType(e.target.value)}
+                            className="glass-input w-full px-4 py-2.5 rounded-xl outline-none bg-slate-800/50"
+                        >
+                            <option value="icmp">ICMP Ping</option>
+                            <option value="tcp">TCP Port</option>
+                            <option value="http">HTTP/HTTPS</option>
+                        </select>
+                    </div>
+
+                    {(monitorType === 'tcp') && (
+                        <div className="space-y-2">
+                            <label className="text-sm font-medium text-slate-300 ml-1">Port</label>
+                            <input
+                                type="number"
+                                placeholder="80"
+                                value={port}
+                                onChange={(e) => setPort(e.target.value)}
+                                className="glass-input w-full px-4 py-2.5 rounded-xl outline-none"
+                                required
+                            />
+                        </div>
+                    )}
+
+                    {(monitorType === 'http') && (
+                        <>
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium text-slate-300 ml-1">Expected Status Code</label>
+                                <input
+                                    type="number"
+                                    placeholder="200"
+                                    value={expectedStatus}
+                                    onChange={(e) => setExpectedStatus(e.target.value)}
+                                    className="glass-input w-full px-4 py-2.5 rounded-xl outline-none"
+                                />
+                            </div>
+                            <div className="flex items-center gap-2 pt-2">
+                                <input
+                                    type="checkbox"
+                                    id="sslMonitor"
+                                    checked={sslMonitor}
+                                    onChange={(e) => setSslMonitor(e.target.checked)}
+                                    className="w-4 h-4 rounded border-slate-600 bg-slate-700"
+                                />
+                                <label htmlFor="sslMonitor" className="text-sm font-medium text-slate-300 cursor-pointer">
+                                    Monitor SSL Expiration
+                                </label>
+                            </div>
+                        </>
+                    )}
+
                     <div className="space-y-2">
                         <label className="text-sm font-medium text-slate-300 ml-1">Ping Interval (sec)</label>
                         <div className="relative">
@@ -147,7 +218,7 @@ const HostManager = ({ onHostAdded, hosts, onHostDeleted }) => {
                             <tr className="bg-slate-800/50 text-slate-300">
                                 <th className="p-4 font-semibold">Name</th>
                                 <th className="p-4 font-semibold">Address</th>
-                                <th className="p-4 font-semibold">Port</th>
+                                <th className="p-4 font-semibold">Type</th>
                                 <th className="p-4 font-semibold">Interval</th>
                                 <th className="p-4 font-semibold text-right">Actions</th>
                             </tr>
@@ -212,7 +283,14 @@ const HostManager = ({ onHostAdded, hosts, onHostDeleted }) => {
                                             <>
                                                 <td className="p-4 font-medium text-white">{host.name}</td>
                                                 <td className="p-4 text-slate-300 font-mono text-sm">{host.ip_address}</td>
-                                                <td className="p-4 text-slate-300 font-mono text-sm">{host.port || 'ICMP'}</td>
+                                                <td className="p-4 text-slate-300 font-mono text-sm">
+                                                    <span className={`px-2 py-1 rounded-md text-xs font-bold ${host.monitor_type === 'http' ? 'bg-purple-500/20 text-purple-400' :
+                                                            host.monitor_type === 'tcp' ? 'bg-orange-500/20 text-orange-400' :
+                                                                'bg-blue-500/20 text-blue-400'
+                                                        }`}>
+                                                        {host.monitor_type === 'tcp' ? `TCP:${host.port}` : host.monitor_type?.toUpperCase() || 'ICMP'}
+                                                    </span>
+                                                </td>
                                                 <td className="p-4 text-slate-300">{host.interval}s</td>
                                                 <td className="p-4 text-right">
                                                     <div className="flex gap-2 justify-end">

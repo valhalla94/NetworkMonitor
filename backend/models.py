@@ -13,6 +13,9 @@ class HostDB(Base):
     enabled = Column(Boolean, default=True)
     average_latency = Column(Float, nullable=True)
     port = Column(Integer, nullable=True)
+    monitor_type = Column(String, default="icmp") # icmp, tcp, http
+    ssl_monitor = Column(Boolean, default=False)
+    expected_status_code = Column(Integer, default=200, nullable=True)
 
 # Pydantic Models
 class HostBase(BaseModel):
@@ -22,6 +25,9 @@ class HostBase(BaseModel):
     enabled: bool = True
     average_latency: float | None = None
     port: int | None = None
+    monitor_type: str = "icmp"
+    ssl_monitor: bool = False
+    expected_status_code: int | None = 200
 
 class HostCreate(HostBase):
     pass
