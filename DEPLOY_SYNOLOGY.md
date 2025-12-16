@@ -31,7 +31,7 @@ Once the containers are started (green dot), you can access:
 
 *   **Frontend (Dashboard)**: `http://NAS-IP:3200`
     *   *The frontend will automatically contact the backend without needing extra configuration.*
-*   **InfluxDB**: `http://NAS-IP:8086`
+
 
 ## Troubleshooting
 
