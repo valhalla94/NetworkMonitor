@@ -14,13 +14,9 @@ const SettingsPage = () => {
     const [notificationMsg, setNotificationMsg] = useState('');
     const navigate = useNavigate();
 
-    const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD || 'admin';
-
     useEffect(() => {
-        // Check if already authenticated in this session
         const token = sessionStorage.getItem('token');
         if (token) {
-            setIsAuthenticated(true);
             setIsAuthenticated(true);
             fetchHosts();
             fetchSettings();
@@ -39,7 +35,7 @@ const SettingsPage = () => {
             const response = await getHosts();
             setHosts(response.data);
         } catch (error) {
-            console.error("Error fetching hosts:", error);
+            console.error('Error fetching hosts:', error);
         }
     };
 
@@ -47,11 +43,9 @@ const SettingsPage = () => {
         try {
             const response = await getSettings();
             const notificationSetting = response.data.find(s => s.key === 'notification_url');
-            if (notificationSetting) {
-                setNotificationUrl(notificationSetting.value);
-            }
+            if (notificationSetting) setNotificationUrl(notificationSetting.value);
         } catch (error) {
-            console.error("Error fetching settings:", error);
+            console.error('Error fetching settings:', error);
         }
     };
 
@@ -62,7 +56,6 @@ const SettingsPage = () => {
             setNotificationMsg('Settings saved and test notification sent!');
             setTimeout(() => setNotificationMsg(''), 5000);
         } catch (error) {
-            console.error("Error saving notification settings:", error);
             setNotificationMsg('Error saving settings.');
         }
     };
@@ -75,7 +68,7 @@ const SettingsPage = () => {
             setIsAuthenticated(true);
             setError('');
             setPassword('');
-        } catch (err) {
+        } catch {
             setError('Incorrect password');
             setPassword('');
         }
@@ -105,7 +98,7 @@ const SettingsPage = () => {
                             <div className="relative">
                                 <Lock className="absolute left-3 top-3 w-5 h-5 text-slate-500" />
                                 <input
-                                    type={showPassword ? "text" : "password"}
+                                    type={showPassword ? 'text' : 'password'}
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
                                     className="glass-input w-full pl-10 pr-12 py-2.5 rounded-xl outline-none"
@@ -121,16 +114,11 @@ const SettingsPage = () => {
                                     {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                                 </button>
                             </div>
-                            {error && (
-                                <p className="text-rose-400 text-sm ml-1 mt-2">{error}</p>
-                            )}
+                            {error && <p className="text-rose-400 text-sm ml-1 mt-2">{error}</p>}
                         </div>
 
                         <div className="space-y-3">
-                            <button
-                                type="submit"
-                                className="glass-button w-full py-3 rounded-xl font-bold text-lg flex items-center justify-center gap-2"
-                            >
+                            <button type="submit" className="glass-button w-full py-3 rounded-xl font-bold text-lg flex items-center justify-center gap-2">
                                 <Lock className="w-5 h-5" />
                                 Unlock Settings
                             </button>
@@ -171,22 +159,16 @@ const SettingsPage = () => {
                         </button>
                     </div>
                 </div>
-                <HostManager
-                    onHostAdded={fetchHosts}
-                    onHostDeleted={fetchHosts}
-                    hosts={hosts}
-                />
 
-                {/* Notification Settings */}
+                <HostManager onHostAdded={fetchHosts} onHostDeleted={fetchHosts} hosts={hosts} />
+
                 <div className="glass-panel p-8 rounded-2xl">
                     <h2 className="text-2xl font-bold mb-6 flex items-center gap-3 text-white">
                         <Bell className="text-amber-400" />
                         Notification Settings
                     </h2>
                     <div className="space-y-4 max-w-2xl">
-                        <p className="text-slate-400">
-                            Configure alerts using Apprise URLs. Supports Email, Slack, Discord, Telegram, and more.
-                        </p>
+                        <p className="text-slate-400">Configure alerts using Apprise URLs. Supports Email, Slack, Discord, Telegram, and more.</p>
                         <form onSubmit={handleSaveNotification} className="flex gap-4">
                             <div className="flex-1">
                                 <label className="text-sm font-medium text-slate-300 ml-1 mb-1 block">Apprise URL</label>
@@ -199,10 +181,7 @@ const SettingsPage = () => {
                                 />
                             </div>
                             <div className="flex items-end">
-                                <button
-                                    type="submit"
-                                    className="glass-button px-6 py-2.5 rounded-xl font-bold text-lg flex items-center gap-2"
-                                >
+                                <button type="submit" className="glass-button px-6 py-2.5 rounded-xl font-bold text-lg flex items-center gap-2">
                                     <Save className="w-5 h-5" />
                                     Save & Test
                                 </button>

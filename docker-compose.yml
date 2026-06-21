@@ -5,10 +5,15 @@ services:
     build: ./backend
     ports:
       - "8100:8000"
-
     volumes:
       - ./backend_data:/app/data
     restart: always
+    environment:
+      # IMPORTANT: Change these before production use!
+      # Generate SECRET_KEY: python -c "import secrets; print(secrets.token_hex(32))"
+      - SECRET_KEY=${SECRET_KEY:-please-change-this-secret-key-in-production}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-admin}
+      - FRONTEND_ORIGIN=${FRONTEND_ORIGIN:-http://localhost:3200}
     healthcheck:
       test: [ "CMD", "curl", "-f", "http://localhost:8000/status" ]
       interval: 30s
@@ -25,9 +30,6 @@ services:
     depends_on:
       backend:
         condition: service_healthy
-    environment:
-      - VITE_API_URL=http://localhost:8000
-      - VITE_ADMIN_PASSWORD=admin
     restart: always
     networks:
       - monitor_net
