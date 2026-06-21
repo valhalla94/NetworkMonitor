@@ -265,15 +265,28 @@ def check_heartbeat_timeouts():
             HostDB.heartbeat_interval != None,
         ).all()
 
+        if not hosts:
+            return
+
+        host_ids = [host.id for host in hosts]
+
+        # Optimize: single query to get the latest ping timestamp for all heartbeat hosts
+        latest_pings = (
+            db.query(PingResultDB.host_id, func.max(PingResultDB.timestamp).label("max_ts"))
+            .filter(PingResultDB.host_id.in_(host_ids))
+            .group_by(PingResultDB.host_id)
+            .all()
+        )
+
+        latest_ping_map = {row.host_id: row.max_ts for row in latest_pings}
+
         for host in hosts:
             cutoff = datetime.utcnow() - timedelta(seconds=host.heartbeat_interval * 2)
-            last = (
-                db.query(PingResultDB)
-                .filter(PingResultDB.host_id == host.id, PingResultDB.timestamp >= cutoff)
-                .order_by(PingResultDB.timestamp.desc())
-                .first()
-            )
+            last_timestamp = latest_ping_map.get(host.id)
+
+            last = True if last_timestamp and last_timestamp >= cutoff else False
             new_status = "UP" if last else "DOWN"
+
             if host.last_status != new_status:
                 host.last_status = new_status
                 db.commit()
