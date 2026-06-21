@@ -4,9 +4,9 @@ from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-# Must set env vars before importing app modules
-os.environ.setdefault("SECRET_KEY", "test-secret-key-for-testing-only-do-not-use")
-os.environ.setdefault("ADMIN_PASSWORD", "testpassword123")
+# Force env vars before importing app modules — override any CI-set values so tests are self-contained
+os.environ["SECRET_KEY"] = "test-secret-key-for-testing-only-do-not-use"
+os.environ["ADMIN_PASSWORD"] = "testpassword123"
 
 
 @pytest.fixture(scope="session")
@@ -40,13 +40,13 @@ def client():
     app.dependency_overrides.clear()
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def auth_token(client):
     response = client.post("/token", data={"username": "admin", "password": "testpassword123"})
     assert response.status_code == 200
     return response.json()["access_token"]
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def auth_headers(auth_token):
     return {"Authorization": f"Bearer {auth_token}"}
