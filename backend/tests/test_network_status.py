@@ -3,19 +3,19 @@ from datetime import datetime, timedelta
 import database
 from models import HostDB, PingResultDB
 
-@pytest.fixture(scope="function")
-def db_session(client):
+def get_test_db():
     db = database.SessionLocal()
     try:
         # Before each test, ensure we start with a clean slate for these tables
         db.query(PingResultDB).delete()
         db.query(HostDB).delete()
         db.commit()
-        yield db
+        return db
     finally:
-        db.close()
+        pass
 
-def test_network_status_no_data(client, db_session):
+def test_network_status_no_data(client):
+    db_session = get_test_db()
     response = client.get("/status")
     assert response.status_code == 200
     data = response.json()
@@ -23,7 +23,8 @@ def test_network_status_no_data(client, db_session):
     assert data["details"] == "No data"
     assert data["global_avg_latency"] == 0
 
-def test_network_status_up(client, db_session):
+def test_network_status_up(client):
+    db_session = get_test_db()
     host1 = HostDB(name="Host 1", ip_address="1.1.1.1", enabled=True)
     host2 = HostDB(name="Host 2", ip_address="2.2.2.2", enabled=True)
     db_session.add_all([host1, host2])
@@ -43,7 +44,8 @@ def test_network_status_up(client, db_session):
     assert data["total"] == 2
     assert data["global_avg_latency"] == 15.0
 
-def test_network_status_down(client, db_session):
+def test_network_status_down(client):
+    db_session = get_test_db()
     host1 = HostDB(name="Host 1", ip_address="1.1.1.1", enabled=True)
     host2 = HostDB(name="Host 2", ip_address="2.2.2.2", enabled=True)
     db_session.add_all([host1, host2])
@@ -65,7 +67,8 @@ def test_network_status_down(client, db_session):
     assert data["total"] == 2
     assert data["global_avg_latency"] == 0
 
-def test_network_status_down_minority_reachable(client, db_session):
+def test_network_status_down_minority_reachable(client):
+    db_session = get_test_db()
     # Create 3 hosts, only 1 is reachable -> 1/3 is not > 0.5 -> DOWN
     hosts = [HostDB(name=f"Host {i}", ip_address=f"1.1.1.{i}", enabled=True) for i in range(1, 4)]
     db_session.add_all(hosts)
@@ -86,7 +89,8 @@ def test_network_status_down_minority_reachable(client, db_session):
     assert data["total"] == 3
     assert data["global_avg_latency"] == 50.0
 
-def test_network_status_ignores_disabled(client, db_session):
+def test_network_status_ignores_disabled(client):
+    db_session = get_test_db()
     host1 = HostDB(name="Host 1", ip_address="1.1.1.1", enabled=False) # Disabled!
     host2 = HostDB(name="Host 2", ip_address="2.2.2.2", enabled=True) # Enabled!
     db_session.add_all([host1, host2])
@@ -106,7 +110,8 @@ def test_network_status_ignores_disabled(client, db_session):
     assert data["total"] == 1 # Total should be 1 because host1 is disabled
     assert data["global_avg_latency"] == 20.0
 
-def test_network_status_ignores_old_pings(client, db_session):
+def test_network_status_ignores_old_pings(client):
+    db_session = get_test_db()
     host1 = HostDB(name="Host 1", ip_address="1.1.1.1", enabled=True)
     db_session.add(host1)
     db_session.commit()
@@ -125,7 +130,8 @@ def test_network_status_ignores_old_pings(client, db_session):
     assert data["reachable"] == 0
     assert data["total"] == 1
 
-def test_network_status_takes_latest_ping(client, db_session):
+def test_network_status_takes_latest_ping(client):
+    db_session = get_test_db()
     host1 = HostDB(name="Host 1", ip_address="1.1.1.1", enabled=True)
     db_session.add(host1)
     db_session.commit()
