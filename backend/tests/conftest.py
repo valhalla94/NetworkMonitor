@@ -10,6 +10,21 @@ os.environ["SECRET_KEY"] = "test-secret-key-for-testing-only-do-not-use"
 os.environ["ADMIN_PASSWORD"] = "testpassword123"
 
 
+@pytest.fixture(scope="function")
+def db_session(client):
+    """Provides a db session for direct DB manipulation in tests.
+    Depends on `client` to ensure the test engine and SessionLocal are initialized.
+    Since we use the test client's engine (in-memory SQLite), we yield a session.
+    """
+    import database
+    db = database.SessionLocal()
+    try:
+        yield db
+    finally:
+        db.rollback()
+        db.close()
+
+
 @pytest.fixture(scope="session")
 def client():
     import database
