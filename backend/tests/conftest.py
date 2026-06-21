@@ -11,7 +11,7 @@ os.environ["ADMIN_PASSWORD"] = "testpassword123"
 
 
 @pytest.fixture(scope="session")
-def client():
+def db_session():
     import database
     import models
 
@@ -29,16 +29,29 @@ def client():
     database.SessionLocal = TestSession
     models.Base.metadata.create_all(bind=test_engine)
 
-    from main import app
+    # Provide a session specifically for tests to interact with the database
+    db = TestSession()
+    try:
+        yield db
+    finally:
+        db.close()
 
+
+@pytest.fixture(scope="session")
+def client(db_session):
+    import database
+    from main import app
+    from database import get_db
+
+    # Note: `database.SessionLocal` and `database.engine` are already set correctly
+    # by the `db_session` fixture.
     def override_get_db():
-        db = TestSession()
+        db = database.SessionLocal()
         try:
             yield db
         finally:
             db.close()
 
-    from database import get_db
     app.dependency_overrides[get_db] = override_get_db
 
     with TestClient(app) as c:
