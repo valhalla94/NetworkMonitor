@@ -334,7 +334,7 @@ class QuickPingRequest(BaseModel):
 @limiter.limit("10/minute")
 async def quick_ping(request: Request, body: QuickPingRequest):
     try:
-        latency = ping(body.target, unit="ms", timeout=2)
+        latency = await asyncio.to_thread(ping, body.target, unit="ms", timeout=2)
         if latency is None:
             return {"target": body.target, "reachable": False, "latency": None, "error": "Timeout"}
         return {"target": body.target, "reachable": True, "latency": latency}
