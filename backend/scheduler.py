@@ -358,17 +358,22 @@ def calculate_average_latency():
     try:
         hosts = db.query(HostDB).filter(HostDB.enabled == True).all()
         cutoff_time = datetime.utcnow() - timedelta(hours=6)
+
+        latency_results = (
+            db.query(PingResultDB.host_id, func.avg(PingResultDB.latency).label("avg_latency"))
+            .filter(
+                PingResultDB.timestamp >= cutoff_time,
+                PingResultDB.latency != None,
+            )
+            .group_by(PingResultDB.host_id)
+            .all()
+        )
+
+        latency_map = {result.host_id: result.avg_latency for result in latency_results}
+
         for host in hosts:
             try:
-                avg_latency = (
-                    db.query(func.avg(PingResultDB.latency))
-                    .filter(
-                        PingResultDB.host_id == host.id,
-                        PingResultDB.timestamp >= cutoff_time,
-                        PingResultDB.latency != None,
-                    )
-                    .scalar()
-                )
+                avg_latency = latency_map.get(host.id)
                 if avg_latency is not None:
                     host.average_latency = avg_latency
             except Exception as e:
