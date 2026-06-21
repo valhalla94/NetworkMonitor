@@ -3,6 +3,7 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy.pool import StaticPool
 
 # Force env vars before importing app modules — override any CI-set values so tests are self-contained
 os.environ["SECRET_KEY"] = "test-secret-key-for-testing-only-do-not-use"
@@ -14,8 +15,14 @@ def client():
     import database
     import models
 
-    # Use in-memory SQLite for tests
-    test_engine = create_engine("sqlite:///:memory:", connect_args={"check_same_thread": False})
+    # Use in-memory SQLite for tests. StaticPool keeps a single shared connection so
+    # all sessions (and the TestClient's worker thread) see the same in-memory DB —
+    # otherwise each new connection gets its own empty :memory: database.
+    test_engine = create_engine(
+        "sqlite:///:memory:",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
     TestSession = sessionmaker(autocommit=False, autoflush=False, bind=test_engine)
 
     database.engine = test_engine
