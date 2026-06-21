@@ -1,4 +1,5 @@
 import logging
+import re
 from sqlalchemy import create_engine, text
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
@@ -58,7 +59,22 @@ _MIGRATIONS = {
 }
 
 
+def is_valid_identifier(name: str) -> bool:
+    """Validates that a string is a valid SQL identifier (table or column name)."""
+    return bool(re.match(r"^[a-zA-Z0-9_]+$", name))
+
+
+def is_valid_typedef(typedef: str) -> bool:
+    """Validates that a string is a valid SQL type definition."""
+    # Allow alphanumeric characters, spaces, single quotes, parentheses, commas, dots, and dashes
+    return bool(re.match(r"^[a-zA-Z0-9_ \'\.\(\)\-,]+$", typedef))
+
+
 def _add_column_if_missing(db, table: str, col: str, typedef: str):
+    if not is_valid_identifier(table) or not is_valid_identifier(col) or not is_valid_typedef(typedef):
+        logger.error(f"Invalid identifier or typedef: table='{table}', col='{col}', typedef='{typedef}'")
+        return
+
     try:
         db.execute(text(f"SELECT {col} FROM {table} LIMIT 1"))
     except OperationalError:
@@ -81,6 +97,10 @@ def migrate_db():
             return
 
         for table, columns in _MIGRATIONS.items():
+            if not is_valid_identifier(table):
+                logger.error(f"Invalid table name in migrations: '{table}'")
+                continue
+
             # Skip tables that don't exist yet
             try:
                 db.execute(text(f"SELECT 1 FROM {table} LIMIT 1"))
