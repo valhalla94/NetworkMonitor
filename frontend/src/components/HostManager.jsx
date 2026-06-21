@@ -1,63 +1,71 @@
 import React, { useState } from 'react';
 import { createHost, updateHost, deleteHost } from '../api';
-import { Plus, Trash2, Globe, Clock, Edit2, X, Check } from 'lucide-react';
+import { Plus, Trash2, Globe, Clock, Edit2, X, Check, AlertTriangle, Heart } from 'lucide-react';
+
+const DEFAULT_FORM = {
+    name: '',
+    ip_address: '',
+    port: '',
+    interval: 30,
+    enabled: true,
+    monitor_type: 'icmp',
+    ssl_monitor: false,
+    expected_status_code: 200,
+    group_name: 'General',
+    maintenance: false,
+    latency_threshold_ms: '',
+    heartbeat_slug: '',
+    heartbeat_interval: '',
+    maintenance_start: '',
+    maintenance_end: '',
+};
 
 const HostManager = ({ onHostAdded, hosts, onHostDeleted }) => {
-    const [name, setName] = useState('');
-    const [ip, setIp] = useState('');
-    const [port, setPort] = useState('');
-    const [interval, setInterval] = useState(30);
-    const [monitorType, setMonitorType] = useState('icmp');
-    const [sslMonitor, setSslMonitor] = useState(false);
-    const [expectedStatus, setExpectedStatus] = useState(200);
-    const [groupName, setGroupName] = useState('General');
-    const [maintenance, setMaintenance] = useState(false);
-
+    const [form, setForm] = useState(DEFAULT_FORM);
     const [editingHost, setEditingHost] = useState(null);
-    const [editForm, setEditForm] = useState({
-        name: '', ip_address: '', port: '', interval: 30, enabled: true,
-        monitor_type: 'icmp', ssl_monitor: false, expected_status_code: 200,
-        group_name: 'General', maintenance: false
+    const [editForm, setEditForm] = useState(DEFAULT_FORM);
+    const [showAddPanel, setShowAddPanel] = useState(false);
+
+    const setField = (setter) => (e) => setter(prev => ({ ...prev, [e.target.name]: e.target.type === 'checkbox' ? e.target.checked : e.target.value }));
+
+    const buildPayload = (f) => ({
+        name: f.name,
+        ip_address: f.ip_address,
+        port: f.port ? parseInt(f.port) : null,
+        interval: parseInt(f.interval) || 30,
+        enabled: f.enabled,
+        monitor_type: f.monitor_type,
+        ssl_monitor: f.ssl_monitor,
+        expected_status_code: parseInt(f.expected_status_code) || 200,
+        group_name: f.group_name || 'General',
+        maintenance: f.maintenance,
+        latency_threshold_ms: f.latency_threshold_ms ? parseFloat(f.latency_threshold_ms) : null,
+        heartbeat_slug: f.heartbeat_slug || null,
+        heartbeat_interval: f.heartbeat_interval ? parseInt(f.heartbeat_interval) : null,
+        maintenance_start: f.maintenance_start || null,
+        maintenance_end: f.maintenance_end || null,
     });
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
-            await createHost({
-                name,
-                ip_address: ip,
-                port: port ? parseInt(port) : null,
-                interval: parseInt(interval),
-                enabled: true,
-                monitor_type: monitorType,
-                ssl_monitor: sslMonitor,
-                expected_status_code: parseInt(expectedStatus),
-                group_name: groupName,
-                maintenance: maintenance
-            });
-            setName('');
-            setIp('');
-            setPort('');
-            setInterval(30);
-            setMonitorType('icmp');
-            setSslMonitor(false);
-            setExpectedStatus(200);
-            setGroupName('General');
-            setMaintenance(false);
-            if (onHostAdded) onHostAdded();
+            await createHost(buildPayload(form));
+            setForm(DEFAULT_FORM);
+            setShowAddPanel(false);
+            onHostAdded?.();
         } catch (error) {
-            console.error("Error creating host:", error);
-            alert("Failed to create host");
+            console.error('Error creating host:', error);
+            alert('Failed to create host');
         }
     };
 
     const handleDelete = async (id) => {
-        if (window.confirm('Are you sure you want to delete this host?')) {
+        if (window.confirm('Delete this host?')) {
             try {
                 await deleteHost(id);
-                if (onHostDeleted) onHostDeleted();
+                onHostDeleted?.();
             } catch (error) {
-                console.error("Error deleting host:", error);
+                console.error('Error deleting host:', error);
             }
         }
     };
@@ -74,154 +82,209 @@ const HostManager = ({ onHostAdded, hosts, onHostDeleted }) => {
             ssl_monitor: host.ssl_monitor || false,
             expected_status_code: host.expected_status_code || 200,
             group_name: host.group_name || 'General',
-            maintenance: host.maintenance || false
+            maintenance: host.maintenance || false,
+            latency_threshold_ms: host.latency_threshold_ms || '',
+            heartbeat_slug: host.heartbeat_slug || '',
+            heartbeat_interval: host.heartbeat_interval || '',
+            maintenance_start: host.maintenance_start ? host.maintenance_start.slice(0, 16) : '',
+            maintenance_end: host.maintenance_end ? host.maintenance_end.slice(0, 16) : '',
         });
-    };
-
-    const cancelEdit = () => {
-        setEditingHost(null);
-        setEditForm({ name: '', ip_address: '', port: '', interval: 30, enabled: true });
     };
 
     const saveEdit = async (hostId) => {
         try {
-            const dataToUpdate = {
-                ...editForm,
-                port: editForm.port ? parseInt(editForm.port) : null
-            };
-            await updateHost(hostId, dataToUpdate);
+            await updateHost(hostId, buildPayload(editForm));
             setEditingHost(null);
-            if (onHostAdded) onHostAdded();
+            onHostAdded?.();
         } catch (error) {
-            console.error("Error updating host:", error);
-            alert("Failed to update host");
+            console.error('Error updating host:', error);
+            alert('Failed to update host');
         }
     };
 
-    return (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* Add Host Form */}
-            <div className="glass-panel p-8 rounded-2xl h-fit">
-                <h2 className="text-2xl font-bold mb-6 flex items-center gap-3 text-white">
-                    <Plus className="text-blue-400" />
-                    Add New Host
-                </h2>
-                <form onSubmit={handleSubmit} className="space-y-5">
-                    <div className="space-y-2">
-                        <label className="text-sm font-medium text-slate-300 ml-1">Host Name</label>
-                        <div className="relative">
-                            <Globe className="absolute left-3 top-3 w-5 h-5 text-slate-500" />
-                            <input
-                                type="text"
-                                placeholder="e.g. Google DNS"
-                                value={name}
-                                onChange={(e) => setName(e.target.value)}
-                                className="glass-input w-full pl-10 pr-4 py-2.5 rounded-xl outline-none"
-                                required
-                            />
-                        </div>
+    const HostFormFields = ({ f, setF, compact = false }) => (
+        <div className={`space-y-4 ${compact ? 'text-sm' : ''}`}>
+            <div className="grid grid-cols-2 gap-3">
+                <div className="col-span-2 space-y-1">
+                    <label className="text-xs font-medium text-slate-400">Host Name *</label>
+                    <div className="relative">
+                        <Globe className="absolute left-3 top-2.5 w-4 h-4 text-slate-500" />
+                        <input name="name" type="text" placeholder="e.g. Google DNS" value={f.name}
+                            onChange={setField(setF)} required
+                            className="glass-input w-full pl-9 pr-3 py-2 rounded-lg outline-none text-sm" />
                     </div>
-
-                    <div className="space-y-2">
-                        <label className="text-sm font-medium text-slate-300 ml-1">IP Address / Hostname</label>
-                        <div className="relative">
-                            <Globe className="absolute left-3 top-3 w-5 h-5 text-slate-500" />
-                            <input
-                                type="text"
-                                placeholder="e.g. 8.8.8.8"
-                                value={ip}
-                                onChange={(e) => setIp(e.target.value)}
-                                className="glass-input w-full pl-10 pr-4 py-2.5 rounded-xl outline-none"
-                                required
-                            />
-                        </div>
-                    </div>
-
-
-                    <div className="space-y-2">
-                        <label className="text-sm font-medium text-slate-300 ml-1">Monitor Type</label>
-                        <select
-                            value={monitorType}
-                            onChange={(e) => setMonitorType(e.target.value)}
-                            className="glass-input w-full px-4 py-2.5 rounded-xl outline-none bg-slate-800/50"
-                        >
-                            <option value="icmp">ICMP Ping</option>
-                            <option value="tcp">TCP Port</option>
-                            <option value="http">HTTP/HTTPS</option>
-                        </select>
-                    </div>
-
-                    {(monitorType === 'tcp') && (
-                        <div className="space-y-2">
-                            <label className="text-sm font-medium text-slate-300 ml-1">Port</label>
-                            <input
-                                type="number"
-                                placeholder="80"
-                                value={port}
-                                onChange={(e) => setPort(e.target.value)}
-                                className="glass-input w-full px-4 py-2.5 rounded-xl outline-none"
-                                required
-                            />
-                        </div>
-                    )}
-
-                    {(monitorType === 'http') && (
-                        <>
-                            <div className="space-y-2">
-                                <label className="text-sm font-medium text-slate-300 ml-1">Expected Status Code</label>
-                                <input
-                                    type="number"
-                                    placeholder="200"
-                                    value={expectedStatus}
-                                    onChange={(e) => setExpectedStatus(e.target.value)}
-                                    className="glass-input w-full px-4 py-2.5 rounded-xl outline-none"
-                                />
-                            </div>
-                            <div className="flex items-center gap-2 pt-2">
-                                <input
-                                    type="checkbox"
-                                    id="sslMonitor"
-                                    checked={sslMonitor}
-                                    onChange={(e) => setSslMonitor(e.target.checked)}
-                                    className="w-4 h-4 rounded border-slate-600 bg-slate-700"
-                                />
-                                <label htmlFor="sslMonitor" className="text-sm font-medium text-slate-300 cursor-pointer">
-                                    Monitor SSL Expiration
-                                </label>
-                            </div>
-                        </>
-                    )}
-
-                    <div className="space-y-2">
-                        <label className="text-sm font-medium text-slate-300 ml-1">Ping Interval (sec)</label>
-                        <div className="relative">
-                            <Clock className="absolute left-3 top-3 w-5 h-5 text-slate-500" />
-                            <input
-                                type="number"
-                                placeholder="30"
-                                value={interval}
-                                onChange={(e) => setInterval(e.target.value)}
-                                className="glass-input w-full pl-10 pr-4 py-2.5 rounded-xl outline-none"
-                                min="5"
-                                required
-                            />
-                        </div>
-                    </div>
-
-                    <button
-                        type="submit"
-                        className="glass-button w-full py-3 rounded-xl font-bold text-lg mt-4 flex items-center justify-center gap-2"
-                    >
-                        <Plus className="w-5 h-5" />
-                        Add Host
-                    </button>
-                </form>
+                </div>
+                <div className="col-span-2 space-y-1">
+                    <label className="text-xs font-medium text-slate-400">IP / Hostname *</label>
+                    <input name="ip_address" type="text" placeholder="8.8.8.8" value={f.ip_address}
+                        onChange={setField(setF)} required
+                        className="glass-input w-full px-3 py-2 rounded-lg outline-none text-sm font-mono" />
+                </div>
             </div>
 
-            {/* Host List */}
-            <div className="lg:col-span-2 glass-panel p-8 rounded-2xl">
-                <h2 className="text-2xl font-bold mb-6 text-white">Managed Hosts</h2>
-                <div className="overflow-hidden rounded-xl border border-slate-700/50">
+            <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                    <label className="text-xs font-medium text-slate-400">Monitor Type</label>
+                    <select name="monitor_type" value={f.monitor_type} onChange={setField(setF)}
+                        className="glass-input w-full px-3 py-2 rounded-lg outline-none bg-slate-800/50 text-sm">
+                        <option value="icmp">ICMP Ping</option>
+                        <option value="tcp">TCP Port</option>
+                        <option value="http">HTTP/HTTPS</option>
+                        <option value="heartbeat">Heartbeat</option>
+                    </select>
+                </div>
+                <div className="space-y-1">
+                    <label className="text-xs font-medium text-slate-400">Group</label>
+                    <input name="group_name" type="text" placeholder="General" value={f.group_name}
+                        onChange={setField(setF)}
+                        className="glass-input w-full px-3 py-2 rounded-lg outline-none text-sm" />
+                </div>
+            </div>
+
+            {(f.monitor_type === 'tcp') && (
+                <div className="space-y-1">
+                    <label className="text-xs font-medium text-slate-400">Port *</label>
+                    <input name="port" type="number" placeholder="80" value={f.port}
+                        onChange={setField(setF)} required
+                        className="glass-input w-full px-3 py-2 rounded-lg outline-none text-sm" />
+                </div>
+            )}
+
+            {(f.monitor_type === 'http') && (
+                <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                        <label className="text-xs font-medium text-slate-400">Expected Status</label>
+                        <input name="expected_status_code" type="number" placeholder="200" value={f.expected_status_code}
+                            onChange={setField(setF)}
+                            className="glass-input w-full px-3 py-2 rounded-lg outline-none text-sm" />
+                    </div>
+                    <div className="flex items-end pb-2">
+                        <label className="flex items-center gap-2 cursor-pointer">
+                            <input name="ssl_monitor" type="checkbox" checked={f.ssl_monitor} onChange={setField(setF)}
+                                className="w-4 h-4 rounded border-slate-600 bg-slate-700" />
+                            <span className="text-xs text-slate-300">Monitor SSL</span>
+                        </label>
+                    </div>
+                </div>
+            )}
+
+            {f.monitor_type === 'heartbeat' && (
+                <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                        <label className="text-xs font-medium text-slate-400">Heartbeat Slug *</label>
+                        <input name="heartbeat_slug" type="text" placeholder="my-service" value={f.heartbeat_slug}
+                            onChange={setField(setF)}
+                            className="glass-input w-full px-3 py-2 rounded-lg outline-none text-sm font-mono" />
+                    </div>
+                    <div className="space-y-1">
+                        <label className="text-xs font-medium text-slate-400">Expected Every (s)</label>
+                        <input name="heartbeat_interval" type="number" placeholder="300" value={f.heartbeat_interval}
+                            onChange={setField(setF)}
+                            className="glass-input w-full px-3 py-2 rounded-lg outline-none text-sm" />
+                    </div>
+                </div>
+            )}
+
+            <div className="grid grid-cols-2 gap-3">
+                {f.monitor_type !== 'heartbeat' && (
+                    <div className="space-y-1">
+                        <label className="text-xs font-medium text-slate-400">
+                            <Clock className="inline w-3 h-3 mr-1" />
+                            Interval (s)
+                        </label>
+                        <input name="interval" type="number" placeholder="30" value={f.interval}
+                            onChange={setField(setF)} min="5"
+                            className="glass-input w-full px-3 py-2 rounded-lg outline-none text-sm" />
+                    </div>
+                )}
+                <div className="space-y-1">
+                    <label className="text-xs font-medium text-slate-400">
+                        <AlertTriangle className="inline w-3 h-3 mr-1" />
+                        Latency Alert (ms)
+                    </label>
+                    <input name="latency_threshold_ms" type="number" placeholder="Optional" value={f.latency_threshold_ms}
+                        onChange={setField(setF)}
+                        className="glass-input w-full px-3 py-2 rounded-lg outline-none text-sm" />
+                </div>
+            </div>
+
+            <div className="space-y-2 pt-1 border-t border-slate-700/50">
+                <label className="text-xs font-medium text-slate-400">Scheduled Maintenance Window</label>
+                <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                        <label className="text-xs text-slate-500">From</label>
+                        <input name="maintenance_start" type="datetime-local" value={f.maintenance_start}
+                            onChange={setField(setF)}
+                            className="glass-input w-full px-3 py-2 rounded-lg outline-none text-sm" />
+                    </div>
+                    <div className="space-y-1">
+                        <label className="text-xs text-slate-500">To</label>
+                        <input name="maintenance_end" type="datetime-local" value={f.maintenance_end}
+                            onChange={setField(setF)}
+                            className="glass-input w-full px-3 py-2 rounded-lg outline-none text-sm" />
+                    </div>
+                </div>
+            </div>
+
+            <div className="flex gap-4">
+                <label className="flex items-center gap-2 cursor-pointer">
+                    <input name="maintenance" type="checkbox" checked={f.maintenance} onChange={setField(setF)}
+                        className="w-4 h-4 rounded border-slate-600 bg-slate-700" />
+                    <span className="text-xs text-slate-300">Maintenance Mode</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                    <input name="enabled" type="checkbox" checked={f.enabled} onChange={setField(setF)}
+                        className="w-4 h-4 rounded border-slate-600 bg-slate-700" />
+                    <span className="text-xs text-slate-300">Enabled</span>
+                </label>
+            </div>
+        </div>
+    );
+
+    return (
+        <div className="space-y-6">
+            {/* Header + Add Button */}
+            <div className="flex items-center justify-between">
+                <h2 className="text-2xl font-bold text-white">Managed Hosts</h2>
+                <button
+                    onClick={() => setShowAddPanel(true)}
+                    className="glass-button px-5 py-2.5 rounded-xl font-medium flex items-center gap-2"
+                >
+                    <Plus className="w-5 h-5" />
+                    Add Host
+                </button>
+            </div>
+
+            {/* Slide-over Add Panel */}
+            {showAddPanel && (
+                <div className="fixed inset-0 z-50 flex justify-end">
+                    <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setShowAddPanel(false)} />
+                    <div className="relative w-full max-w-md bg-slate-900 border-l border-slate-700 h-full overflow-y-auto shadow-2xl animate-in slide-in-from-right duration-300">
+                        <div className="p-6">
+                            <div className="flex items-center justify-between mb-6">
+                                <h3 className="text-xl font-bold text-white flex items-center gap-2">
+                                    <Plus className="text-blue-400 w-5 h-5" />
+                                    Add New Host
+                                </h3>
+                                <button onClick={() => setShowAddPanel(false)} className="text-slate-400 hover:text-white transition-colors">
+                                    <X className="w-6 h-6" />
+                                </button>
+                            </div>
+                            <form onSubmit={handleSubmit} className="space-y-4">
+                                <HostFormFields f={form} setF={setForm} />
+                                <button type="submit" className="glass-button w-full py-3 rounded-xl font-bold flex items-center justify-center gap-2 mt-4">
+                                    <Plus className="w-5 h-5" />
+                                    Add Host
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Host Table */}
+            <div className="glass-panel p-6 rounded-2xl">
+                <div className="overflow-x-auto">
                     <table className="w-full text-left border-collapse">
                         <thead>
                             <tr className="bg-slate-800/50 text-slate-300">
@@ -236,8 +299,8 @@ const HostManager = ({ onHostAdded, hosts, onHostDeleted }) => {
                         <tbody className="divide-y divide-slate-700/50">
                             {hosts.length === 0 ? (
                                 <tr>
-                                    <td colSpan="4" className="p-8 text-center text-slate-500">
-                                        No hosts added yet. Add one to start monitoring.
+                                    <td colSpan="6" className="p-8 text-center text-slate-500">
+                                        No hosts added yet. Click "Add Host" to start monitoring.
                                     </td>
                                 </tr>
                             ) : (
@@ -245,70 +308,18 @@ const HostManager = ({ onHostAdded, hosts, onHostDeleted }) => {
                                     <tr key={host.id} className="hover:bg-slate-800/30 transition-colors">
                                         {editingHost === host.id ? (
                                             <>
-                                                <td className="p-4">
-                                                    <input
-                                                        type="text"
-                                                        value={editForm.name}
-                                                        onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
-                                                        className="glass-input w-full px-3 py-1.5 rounded-lg outline-none text-sm"
-                                                    />
+                                                <td className="p-3" colSpan="4">
+                                                    <HostFormFields f={editForm} setF={setEditForm} compact />
                                                 </td>
-                                                <td className="p-4">
-                                                    <input
-                                                        type="text"
-                                                        value={editForm.ip_address}
-                                                        onChange={(e) => setEditForm({ ...editForm, ip_address: e.target.value })}
-                                                        className="glass-input w-full px-3 py-1.5 rounded-lg outline-none text-sm font-mono"
-                                                    />
-                                                </td>
-
-                                                <td className="p-4">
-                                                    <input
-                                                        type="text"
-                                                        value={editForm.group_name}
-                                                        onChange={(e) => setEditForm({ ...editForm, group_name: e.target.value })}
-                                                        className="glass-input w-full px-3 py-1.5 rounded-lg outline-none text-sm"
-                                                    />
-                                                </td>
-                                                <td className="p-4 relative">
-                                                    <div className="absolute inset-x-2 -top-2 flex gap-1 justify-center">
-                                                        <label className="flex items-center gap-1 bg-slate-800/80 px-2 py-0.5 rounded border border-slate-700 text-[10px] text-slate-400 cursor-pointer hover:text-white">
-                                                            <input
-                                                                type="checkbox"
-                                                                checked={editForm.maintenance}
-                                                                onChange={(e) => setEditForm({ ...editForm, maintenance: e.target.checked })}
-                                                                className="w-3 h-3 rounded bg-slate-700 border-slate-600"
-                                                            />
-                                                            Maint.
-                                                        </label>
-                                                    </div>
-                                                    <div className="text-xs text-center text-slate-500 pt-3">
-                                                        {editForm.monitor_type.toUpperCase()}
-                                                    </div>
-                                                </td>
-                                                <td className="p-4">
-                                                    <input
-                                                        type="number"
-                                                        value={editForm.interval}
-                                                        onChange={(e) => setEditForm({ ...editForm, interval: parseInt(e.target.value) })}
-                                                        className="glass-input w-20 px-3 py-1.5 rounded-lg outline-none text-sm"
-                                                        min="5"
-                                                    />
-                                                </td>
-                                                <td className="p-4 text-right">
+                                                <td className="p-3" />
+                                                <td className="p-3 text-right align-top">
                                                     <div className="flex gap-2 justify-end">
-                                                        <button
-                                                            onClick={() => saveEdit(host.id)}
-                                                            className="p-2 text-emerald-400 hover:bg-emerald-500/10 rounded-lg transition-colors"
-                                                            title="Save Changes"
-                                                        >
+                                                        <button onClick={() => saveEdit(host.id)}
+                                                            className="p-2 text-emerald-400 hover:bg-emerald-500/10 rounded-lg transition-colors" title="Save">
                                                             <Check className="w-5 h-5" />
                                                         </button>
-                                                        <button
-                                                            onClick={cancelEdit}
-                                                            className="p-2 text-slate-400 hover:bg-slate-500/10 rounded-lg transition-colors"
-                                                            title="Cancel"
-                                                        >
+                                                        <button onClick={() => setEditingHost(null)}
+                                                            className="p-2 text-slate-400 hover:bg-slate-500/10 rounded-lg transition-colors" title="Cancel">
                                                             <X className="w-5 h-5" />
                                                         </button>
                                                     </div>
@@ -318,50 +329,51 @@ const HostManager = ({ onHostAdded, hosts, onHostDeleted }) => {
                                             <>
                                                 <td className="p-4 font-medium text-white">
                                                     {host.name}
-                                                    {host.maintenance && <span className="ml-2 px-1.5 py-0.5 text-[10px] bg-amber-500/20 text-amber-400 rounded border border-amber-500/30">MAINTENANCE</span>}
+                                                    {host.maintenance && (
+                                                        <span className="ml-2 px-1.5 py-0.5 text-[10px] bg-amber-500/20 text-amber-400 rounded border border-amber-500/30">MAINT</span>
+                                                    )}
+                                                    {host.latency_threshold_ms && (
+                                                        <span className="ml-2 px-1.5 py-0.5 text-[10px] bg-orange-500/10 text-orange-400 rounded border border-orange-500/20">
+                                                            ⚡{host.latency_threshold_ms}ms
+                                                        </span>
+                                                    )}
                                                 </td>
                                                 <td className="p-4 text-slate-300 font-mono text-sm">{host.ip_address}</td>
                                                 <td className="p-4 text-slate-300 text-sm">{host.group_name || '-'}</td>
-                                                <td className="p-4 text-slate-300 font-mono text-sm">
-                                                    <span className={`px-2 py-1 rounded-md text-xs font-bold ${host.monitor_type === 'http' ? 'bg-purple-500/20 text-purple-400' :
+                                                <td className="p-4 text-slate-300">
+                                                    <span className={`px-2 py-1 rounded-md text-xs font-bold ${
+                                                        host.monitor_type === 'http' ? 'bg-purple-500/20 text-purple-400' :
                                                         host.monitor_type === 'tcp' ? 'bg-orange-500/20 text-orange-400' :
-                                                            'bg-blue-500/20 text-blue-400'
-                                                        }`}>
-                                                        {host.monitor_type === 'tcp' ? `TCP:${host.port}` : host.monitor_type?.toUpperCase() || 'ICMP'}
+                                                        host.monitor_type === 'heartbeat' ? 'bg-pink-500/20 text-pink-400' :
+                                                        'bg-blue-500/20 text-blue-400'
+                                                    }`}>
+                                                        {host.monitor_type === 'tcp' ? `TCP:${host.port}` :
+                                                         host.monitor_type === 'heartbeat' ? '💓 HB' :
+                                                         host.monitor_type?.toUpperCase() || 'ICMP'}
                                                     </span>
-
-                                                    {host.ssl_monitor && (
-                                                        <div className="mt-2">
-                                                            {host.ssl_expiry_days !== null ? (
-                                                                <span className={`px-2 py-0.5 rounded text-[10px] font-bold border ${host.ssl_expiry_days > 30 ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
-                                                                        host.ssl_expiry_days > 7 ? 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20' :
-                                                                            'bg-red-500/10 text-red-400 border-red-500/20'
-                                                                    }`}>
-                                                                    SSL: {host.ssl_expiry_days}d
-                                                                </span>
-                                                            ) : (
-                                                                <span className="px-2 py-0.5 rounded text-[10px] bg-slate-700 text-slate-400 border border-slate-600">
-                                                                    SSL: Checking...
-                                                                </span>
-                                                            )}
+                                                    {host.ssl_monitor && host.ssl_expiry_days !== null && (
+                                                        <div className="mt-1">
+                                                            <span className={`px-2 py-0.5 rounded text-[10px] font-bold border ${
+                                                                host.ssl_expiry_days > 30 ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
+                                                                host.ssl_expiry_days > 7 ? 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20' :
+                                                                'bg-red-500/10 text-red-400 border-red-500/20'
+                                                            }`}>
+                                                                SSL: {host.ssl_expiry_days}d
+                                                            </span>
                                                         </div>
                                                     )}
                                                 </td>
-                                                <td className="p-4 text-slate-300">{host.interval}s</td>
+                                                <td className="p-4 text-slate-300">
+                                                    {host.monitor_type === 'heartbeat' ? `${host.heartbeat_interval || '?'}s` : `${host.interval}s`}
+                                                </td>
                                                 <td className="p-4 text-right">
                                                     <div className="flex gap-2 justify-end">
-                                                        <button
-                                                            onClick={() => startEdit(host)}
-                                                            className="p-2 text-blue-400 hover:bg-blue-500/10 rounded-lg transition-colors"
-                                                            title="Edit Host"
-                                                        >
+                                                        <button onClick={() => startEdit(host)}
+                                                            className="p-2 text-blue-400 hover:bg-blue-500/10 rounded-lg transition-colors" title="Edit">
                                                             <Edit2 className="w-5 h-5" />
                                                         </button>
-                                                        <button
-                                                            onClick={() => handleDelete(host.id)}
-                                                            className="p-2 text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors"
-                                                            title="Delete Host"
-                                                        >
+                                                        <button onClick={() => handleDelete(host.id)}
+                                                            className="p-2 text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors" title="Delete">
                                                             <Trash2 className="w-5 h-5" />
                                                         </button>
                                                     </div>
