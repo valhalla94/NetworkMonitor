@@ -1,107 +1,125 @@
 # Network Monitor
 
-A modern, self-hosted network monitoring dashboard built with React and FastAPI. Monitor the uptime, latency, and status of your network devices in real-time with a premium, responsive user interface.
+[![CI](https://github.com/valhalla94/NetworkMonitor/actions/workflows/ci.yml/badge.svg)](https://github.com/valhalla94/NetworkMonitor/actions/workflows/ci.yml)
 
-NOW POWERED BY **SQLITE** - Lightweight, efficient, and perfect for low-power devices like Synology NAS or Raspberry Pi.
+A self-hosted network monitoring dashboard built with React 19 and FastAPI. Monitor uptime, latency, and status of your network devices in real-time. Optimized for low-power devices like Synology NAS or Raspberry Pi.
 
-## 🚀 Features
+## Features
 
-*   **Real-time Monitoring**: Track latency and uptime for multiple hosts (ICMP/Ping, HTTP, TCP).
-*   **🔔 Smart Notifications**: Get instant alerts via multiple platforms (Discord, Telegram, Email, etc.) when a host goes DOWN or comes back UP. Powered by **Apprise**.
-*   **Internet Speed Test**: Built-in speed test to check your ISP's performance (Download, Upload, Ping) with historical tracking.
-*   **Quick Ping**: Instantly ping any IP or hostname directly from the dashboard without adding it to the monitor.
-*   **Network Health**: View global average latency across all monitored hosts for a quick health snapshot.
-*   **Public IP Tracking**: Monitor your public IP address, view history of changes, and track duration of the current IP.
-*   **Historical Data**: View interactive charts for latency trends over time (1h, 24h, 7d, 30d, 1y). Data is retained for 30 days.
-*   **SSL Certificate Monitoring**: Automatically checks and alerts you when SSL certificates are about to expire.
-*   **Host Management**: Add, edit, and delete hosts via a password-protected settings interface.
-*   **Responsive Design**: "Premium" glassmorphism UI that looks great on desktop and mobile.
-*   **Dockerized**: Easy deployment with Docker Compose.
+- **Real-time Monitoring**: Latency and uptime for multiple hosts (ICMP/Ping, HTTP, TCP) via Server-Sent Events
+- **Smart Notifications**: Alerts via Discord, Telegram, Email, and more when a host goes DOWN or UP. Powered by **Apprise**
+- **Internet Speed Test**: Built-in speed test (Download, Upload, Ping) with historical tracking
+- **Quick Ping**: Instantly ping any IP or hostname without adding it to the monitor
+- **Network Health**: Global average latency across all monitored hosts
+- **Public IP Tracking**: Monitor public IP address and view change history
+- **Historical Charts**: Interactive latency charts (1h, 24h, 7d, 30d, 1y). Data retained 30 days
+- **SSL Certificate Monitoring**: Alerts when certificates are about to expire
+- **Host Management**: Add, edit, and delete hosts via a JWT-authenticated settings interface
+- **Dark/Light Theme**: Toggle between themes with persistent preference
+- **Audit Log**: Track all configuration changes
+- **Responsive Design**: Glassmorphism UI, works on desktop and mobile
+- **Dockerized**: Single `docker-compose up` deployment
 
-## 🛠️ Tech Stack
+## Tech Stack
 
-*   **Frontend**: React, Vite, TailwindCSS, Recharts, Lucide React.
-*   **Backend**: Python FastAPI, APScheduler, SQLAlchemy.
-*   **Database**: SQLite (Lightweight, file-based storage).
-*   **Notifications**: Apprise (Python library).
-*   **Containerization**: Docker, Docker Compose.
+| Layer | Technology |
+| :--- | :--- |
+| **Frontend** | React 19, Vite 7, TailwindCSS 3, Recharts 3, React Router 7 |
+| **Backend** | Python 3.11, FastAPI 0.109, APScheduler 3.10, SQLAlchemy 2 |
+| **Auth** | JWT (python-jose), bcrypt, rate limiting (slowapi) |
+| **Database** | SQLite with WAL mode |
+| **Notifications** | Apprise |
+| **Deploy** | Docker Compose, Nginx reverse proxy |
 
-## 📋 Prerequisites
+## Quick Start
 
-*   [Docker](https://www.docker.com/get-started) and Docker Compose installed on your machine.
+**Prerequisites**: Docker and Docker Compose installed.
 
-## ⚡ Quick Start
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/valhalla94/NetworkMonitor.git
+   cd NetworkMonitor
+   ```
 
-1.  **Clone the repository** (or download the files):
-    ```bash
-    git clone <repository-url>
-    cd network-monitor
-    ```
+2. Set required environment variables (create a `.env` file):
+   ```bash
+   SECRET_KEY=$(python3 -c "import secrets; print(secrets.token_hex(32))")
+   ADMIN_PASSWORD=your-strong-password
+   FRONTEND_ORIGIN=http://localhost:3200
+   ```
 
-2.  **Start the application**:
-    ```bash
-    docker-compose up -d --build
-    ```
+3. Start the application:
+   ```bash
+   docker-compose up -d --build
+   ```
 
-3.  **Access the Dashboard**:
-    Open your browser and navigate to `http://localhost:3200`.
+4. Open `http://localhost:3200` in your browser.
 
-## ⚙️ Configuration
-
-### Docker Compose
-You can configure ports and environment variables in `docker-compose.yml`.
-
-| Service | Default Port | Description |
-| :--- | :--- | :--- |
-| **Frontend** | `3200` | The main dashboard UI. |
-| **Backend** | `8100` | The API server (internal use mostly). |
+## Configuration
 
 ### Environment Variables
-*   `VITE_API_URL`: URL of the backend API (handled automatically by proxy in production).
-*   `VITE_ADMIN_PASSWORD`: Password for the settings area (Default: `admin`). *Note: To change this in Docker, you must rebuild the image with build arguments.*
+
+Set these in your `.env` file or `docker-compose.yml` environment section:
+
+| Variable | Required | Description |
+| :--- | :--- | :--- |
+| `SECRET_KEY` | **Yes** | JWT signing key. Generate: `python3 -c "import secrets; print(secrets.token_hex(32))"` |
+| `ADMIN_PASSWORD` | **Yes** | Dashboard login password. Default `admin` — change before production |
+| `FRONTEND_ORIGIN` | No | CORS origin for the frontend. Default: `http://localhost:3200` |
+
+### Ports
+
+| Service | Default Port |
+| :--- | :--- |
+| **Frontend** | `3200` |
+| **Backend** | `8100` |
 
 ### Notifications
-Configure your notification URL in the **Settings** page of the dashboard.
-Example URLs:
+
+Configure notification URLs in the **Settings** page of the dashboard.
+
+Examples:
 - **Discord**: `discord://webhook_id/webhook_token`
 - **Telegram**: `tgram://bot_token/chat_id`
 - **Email**: `mailto://user:password@gmail.com`
 
 See [Apprise Documentation](https://github.com/caronc/apprise) for all supported services.
 
-## 🖥️ Development
+## Development
 
-To run the project locally for development:
-
-**1. Start Backend:**
+**Backend:**
 ```bash
-docker-compose up -d backend
+cd backend
+pip install -r requirements.txt -r requirements-dev.txt
+SECRET_KEY=dev-key ADMIN_PASSWORD=devpassword uvicorn main:app --reload
 ```
 
-**2. Start Frontend:**
+**Frontend:**
 ```bash
 cd frontend
 npm install
 npm run dev
 ```
-The frontend will be available at `http://localhost:5173`.
 
-## 📦 Deployment on Synology NAS
+Frontend: `http://localhost:5173` — Backend: `http://localhost:8000`
 
-This project is optimized for deployment on Synology NAS using Container Manager.
+**Tests:**
+```bash
+# Backend
+cd backend && pytest tests/ -v
+
+# Frontend
+cd frontend && npm run test
+```
+
+## Deployment on Synology NAS
+
 See [DEPLOY_SYNOLOGY.md](./DEPLOY_SYNOLOGY.md) for detailed instructions.
 
-## 🔄 Recent Updates
+## License
 
-*   **Refactor**: Migrated from InfluxDB to **SQLite** for significantly lower resource usage (RAM/CPU).
-*   **Feature**: Added **Notification System** for status changes and SSL warnings.
-*   **Feature**: Added Internet Speed Test, Quick Ping, and Network Health cards.
-*   **UI/UX**: Improved button interactions, added animations, and refined the glassmorphism design.
+Open source. Free to modify and distribute.
 
-## 📝 License
-
-This project is open source. Feel free to modify and distribute.
-
-## Frontend preview
+## Preview
 
 ![Frontend UI](UI.jpg)
