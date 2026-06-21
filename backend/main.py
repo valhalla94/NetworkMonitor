@@ -257,18 +257,25 @@ def get_network_status(db: Session = Depends(get_db)):
     total_latency = 0.0
     latency_count = 0
 
-    for host in hosts:
-        total_hosts += 1
-        last_ping = (
+    if hosts:
+        host_ids = [h.id for h in hosts]
+        recent_pings = (
             db.query(models.PingResultDB)
-            .filter(models.PingResultDB.host_id == host.id, models.PingResultDB.timestamp >= cutoff)
-            .order_by(models.PingResultDB.timestamp.desc())
-            .first()
+            .filter(models.PingResultDB.host_id.in_(host_ids), models.PingResultDB.timestamp >= cutoff)
+            .order_by(models.PingResultDB.timestamp.asc())
+            .all()
         )
-        if last_ping and last_ping.latency is not None:
-            reachable_hosts += 1
-            total_latency += last_ping.latency
-            latency_count += 1
+
+        latest_pings = {ping.host_id: ping for ping in recent_pings}
+
+        for host in hosts:
+            total_hosts += 1
+            last_ping = latest_pings.get(host.id)
+
+            if last_ping and last_ping.latency is not None:
+                reachable_hosts += 1
+                total_latency += last_ping.latency
+                latency_count += 1
 
     if total_hosts == 0:
         return {"status": "UNKNOWN", "details": "No data", "global_avg_latency": 0}
@@ -374,17 +381,23 @@ def _get_sse_data():
     db = database.SessionLocal()
     try:
         hosts = db.query(models.HostDB).filter(models.HostDB.enabled == True).all()
-        status_data = db.query(models.PingResultDB)
         cutoff = datetime.utcnow() - timedelta(minutes=5)
 
         host_list = []
-        for h in hosts:
-            last_ping = (
+        if hosts:
+            host_ids = [h.id for h in hosts]
+            recent_pings = (
                 db.query(models.PingResultDB)
-                .filter(models.PingResultDB.host_id == h.id, models.PingResultDB.timestamp >= cutoff)
-                .order_by(models.PingResultDB.timestamp.desc())
-                .first()
+                .filter(models.PingResultDB.host_id.in_(host_ids), models.PingResultDB.timestamp >= cutoff)
+                .order_by(models.PingResultDB.timestamp.asc())
+                .all()
             )
+            latest_pings = {ping.host_id: ping for ping in recent_pings}
+        else:
+            latest_pings = {}
+
+        for h in hosts:
+            last_ping = latest_pings.get(h.id)
             host_list.append({
                 "id": h.id,
                 "name": h.name,
