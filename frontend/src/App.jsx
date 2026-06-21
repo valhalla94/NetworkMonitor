@@ -1,10 +1,11 @@
-import React, { useState, useEffect, createContext, useContext } from 'react';
+import React, { useState, useEffect, createContext } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
 import Dashboard from './components/Dashboard';
 import SettingsPage from './components/SettingsPage';
 import StatusPage from './components/StatusPage';
 import { LayoutDashboard, Settings, Sun, Moon, Activity } from 'lucide-react';
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const ThemeContext = createContext({ dark: true, toggle: () => {} });
 
 function App() {

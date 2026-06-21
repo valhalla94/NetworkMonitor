@@ -203,7 +203,7 @@ const Dashboard = () => {
         try {
             const response = await quickPing(quickPingTarget);
             setQuickPingResult(response.data);
-        } catch (error) {
+        } catch {
             setQuickPingResult({ error: 'Failed to ping target' });
         } finally {
             setQuickPingLoading(false);

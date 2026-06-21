@@ -14,22 +14,6 @@ const SettingsPage = () => {
     const [notificationMsg, setNotificationMsg] = useState('');
     const navigate = useNavigate();
 
-    useEffect(() => {
-        const token = sessionStorage.getItem('token');
-        if (token) {
-            setIsAuthenticated(true);
-            fetchHosts();
-            fetchSettings();
-        }
-    }, []);
-
-    useEffect(() => {
-        if (isAuthenticated) {
-            fetchHosts();
-            fetchSettings();
-        }
-    }, [isAuthenticated]);
-
     const fetchHosts = async () => {
         try {
             const response = await getHosts();
@@ -49,13 +33,29 @@ const SettingsPage = () => {
         }
     };
 
+    useEffect(() => {
+        const token = sessionStorage.getItem('token');
+        if (token) {
+            setIsAuthenticated(true);
+            fetchHosts();
+            fetchSettings();
+        }
+    }, []);
+
+    useEffect(() => {
+        if (isAuthenticated) {
+            fetchHosts();
+            fetchSettings();
+        }
+    }, [isAuthenticated]);
+
     const handleSaveNotification = async (e) => {
         e.preventDefault();
         try {
             await updateNotificationSettings(notificationUrl);
             setNotificationMsg('Settings saved and test notification sent!');
             setTimeout(() => setNotificationMsg(''), 5000);
-        } catch (error) {
+        } catch {
             setNotificationMsg('Error saving settings.');
         }
     };
