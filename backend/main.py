@@ -64,7 +64,7 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
 app.add_middleware(SecurityHeadersMiddleware)
 
 # CORS — no credentials needed (Bearer token in Authorization header, not cookies)
-FRONTEND_ORIGIN = os.getenv("FRONTEND_ORIGIN", "*")
+FRONTEND_ORIGIN = os.getenv("FRONTEND_ORIGIN", "http://localhost:3200")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[FRONTEND_ORIGIN] if FRONTEND_ORIGIN != "*" else ["*"],
@@ -90,8 +90,12 @@ def get_current_user(token: str = Depends(oauth2_scheme)):
 
 @app.post("/token", response_model=auth.Token)
 @limiter.limit("5/minute")
-async def login_for_access_token(request: Request, form_data: OAuth2PasswordRequestForm = Depends()):
-    if form_data.username != "admin" or not auth.verify_password(form_data.password, ADMIN_PASSWORD_HASH):
+async def login_for_access_token(
+    request: Request, form_data: OAuth2PasswordRequestForm = Depends()
+):
+    if form_data.username != "admin" or not auth.verify_password(
+        form_data.password, ADMIN_PASSWORD_HASH
+    ):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect username or password",
@@ -115,7 +119,11 @@ def startup_event():
 
 
 @app.post("/hosts/", response_model=models.Host)
-def create_host(host: models.HostCreate, db: Session = Depends(get_db), current_user: auth.User = Depends(get_current_user)):
+def create_host(
+    host: models.HostCreate,
+    db: Session = Depends(get_db),
+    current_user: auth.User = Depends(get_current_user),
+):
     db_host = models.HostDB(**host.dict())
     db.add(db_host)
     db.commit()
@@ -138,7 +146,12 @@ def read_host(host_id: int, db: Session = Depends(get_db)):
 
 
 @app.put("/hosts/{host_id}", response_model=models.Host)
-def update_host(host_id: int, host: models.HostCreate, db: Session = Depends(get_db), current_user: auth.User = Depends(get_current_user)):
+def update_host(
+    host_id: int,
+    host: models.HostCreate,
+    db: Session = Depends(get_db),
+    current_user: auth.User = Depends(get_current_user),
+):
     db_host = db.query(models.HostDB).filter(models.HostDB.id == host_id).first()
     if db_host is None:
         raise HTTPException(status_code=404, detail="Host not found")
@@ -151,7 +164,11 @@ def update_host(host_id: int, host: models.HostCreate, db: Session = Depends(get
 
 
 @app.delete("/hosts/{host_id}")
-def delete_host(host_id: int, db: Session = Depends(get_db), current_user: auth.User = Depends(get_current_user)):
+def delete_host(
+    host_id: int,
+    db: Session = Depends(get_db),
+    current_user: auth.User = Depends(get_current_user),
+):
     db_host = db.query(models.HostDB).filter(models.HostDB.id == host_id).first()
     if db_host is None:
         raise HTTPException(status_code=404, detail="Host not found")
@@ -191,7 +208,10 @@ def get_metrics(host_id: int, range: str = "-1h", db: Session = Depends(get_db))
     limit = _RANGE_LIMITS.get(range, 1440)
     results_db = (
         db.query(models.PingResultDB)
-        .filter(models.PingResultDB.host_id == host_id, models.PingResultDB.timestamp >= cutoff)
+        .filter(
+            models.PingResultDB.host_id == host_id,
+            models.PingResultDB.timestamp >= cutoff,
+        )
         .order_by(models.PingResultDB.timestamp.asc())
         .limit(limit)
         .all()
@@ -208,7 +228,9 @@ def get_metrics(host_id: int, range: str = "-1h", db: Session = Depends(get_db))
         if latency_val >= 0:
             successful_pings += 1
             total_latency += latency_val
-        results.append({"time": record.timestamp.isoformat() + "Z", "latency": latency_val})
+        results.append(
+            {"time": record.timestamp.isoformat() + "Z", "latency": latency_val}
+        )
 
     uptime = (successful_pings / total_pings * 100) if total_pings > 0 else 0
     avg_latency = (total_latency / successful_pings) if successful_pings > 0 else 0
@@ -217,7 +239,9 @@ def get_metrics(host_id: int, range: str = "-1h", db: Session = Depends(get_db))
 
 
 @app.get("/uptime/{host_id}")
-def get_uptime_history(host_id: int, range: str = "-30d", db: Session = Depends(get_db)):
+def get_uptime_history(
+    host_id: int, range: str = "-30d", db: Session = Depends(get_db)
+):
     """Daily uptime percentage for the given host."""
     now = datetime.utcnow()
     range_map = {
@@ -230,7 +254,10 @@ def get_uptime_history(host_id: int, range: str = "-30d", db: Session = Depends(
 
     results_db = (
         db.query(models.PingResultDB)
-        .filter(models.PingResultDB.host_id == host_id, models.PingResultDB.timestamp >= cutoff)
+        .filter(
+            models.PingResultDB.host_id == host_id,
+            models.PingResultDB.timestamp >= cutoff,
+        )
         .order_by(models.PingResultDB.timestamp.asc())
         .all()
     )
@@ -246,7 +273,10 @@ def get_uptime_history(host_id: int, range: str = "-30d", db: Session = Depends(
             daily[day_key]["up"] += 1
 
     return [
-        {"date": day, "uptime": round(v["up"] / v["total"] * 100, 2) if v["total"] > 0 else 0}
+        {
+            "date": day,
+            "uptime": round(v["up"] / v["total"] * 100, 2) if v["total"] > 0 else 0,
+        }
         for day, v in sorted(daily.items())
     ]
 
@@ -256,6 +286,26 @@ def get_network_status(db: Session = Depends(get_db)):
     hosts = db.query(models.HostDB).filter(models.HostDB.enabled == True).all()
     cutoff = datetime.utcnow() - timedelta(minutes=5)
 
+    host_ids = [h.id for h in hosts]
+
+    if host_ids:
+        recent_pings = (
+            db.query(models.PingResultDB)
+            .filter(
+                models.PingResultDB.host_id.in_(host_ids),
+                models.PingResultDB.timestamp >= cutoff,
+            )
+            .order_by(models.PingResultDB.timestamp.desc())
+            .all()
+        )
+    else:
+        recent_pings = []
+
+    latest_pings = {}
+    for p in recent_pings:
+        if p.host_id not in latest_pings:
+            latest_pings[p.host_id] = p
+
     total_hosts = 0
     reachable_hosts = 0
     total_latency = 0.0
@@ -263,12 +313,7 @@ def get_network_status(db: Session = Depends(get_db)):
 
     for host in hosts:
         total_hosts += 1
-        last_ping = (
-            db.query(models.PingResultDB)
-            .filter(models.PingResultDB.host_id == host.id, models.PingResultDB.timestamp >= cutoff)
-            .order_by(models.PingResultDB.timestamp.desc())
-            .first()
-        )
+        last_ping = latest_pings.get(host.id)
         if last_ping and last_ping.latency is not None:
             reachable_hosts += 1
             total_latency += last_ping.latency
@@ -296,7 +341,10 @@ def get_public_ip_history(db: Session = Depends(get_db)):
         .limit(100)
         .all()
     )
-    return [{"time": r.timestamp.isoformat() + "Z", "ip_address": r.ip_address} for r in history_db]
+    return [
+        {"time": r.timestamp.isoformat() + "Z", "ip_address": r.ip_address}
+        for r in history_db
+    ]
 
 
 @app.post("/speedtest/run")
@@ -338,16 +386,28 @@ class QuickPingRequest(BaseModel):
 @limiter.limit("10/minute")
 async def quick_ping(request: Request, body: QuickPingRequest):
     try:
-        latency = ping(body.target, unit="ms", timeout=2)
+        latency = await asyncio.to_thread(ping, body.target, unit="ms", timeout=2)
         if latency is None:
-            return {"target": body.target, "reachable": False, "latency": None, "error": "Timeout"}
+            return {
+                "target": body.target,
+                "reachable": False,
+                "latency": None,
+                "error": "Timeout",
+            }
         return {"target": body.target, "reachable": True, "latency": latency}
     except Exception as e:
-        return {"target": body.target, "reachable": False, "latency": None, "error": str(e)}
+        return {
+            "target": body.target,
+            "reachable": False,
+            "latency": None,
+            "error": str(e),
+        }
 
 
 @app.get("/settings", response_model=List[models.Settings])
-def get_settings(db: Session = Depends(get_db), current_user: auth.User = Depends(get_current_user)):
+def get_settings(
+    db: Session = Depends(get_db), current_user: auth.User = Depends(get_current_user)
+):
     return db.query(models.SettingsDB).all()
 
 
@@ -357,7 +417,11 @@ def update_notification_settings(
     db: Session = Depends(get_db),
     current_user: auth.User = Depends(get_current_user),
 ):
-    db_setting = db.query(models.SettingsDB).filter(models.SettingsDB.key == "notification_url").first()
+    db_setting = (
+        db.query(models.SettingsDB)
+        .filter(models.SettingsDB.key == "notification_url")
+        .first()
+    )
     if not db_setting:
         db_setting = models.SettingsDB(key="notification_url", value=settings.value)
         db.add(db_setting)
@@ -365,7 +429,9 @@ def update_notification_settings(
         db_setting.value = settings.value
     db.commit()
     notification_manager.load_config(db)
-    notification_manager.send_notification("NetworkMonitor", "Notification configuration updated successfully.")
+    notification_manager.send_notification(
+        "NetworkMonitor", "Notification configuration updated successfully."
+    )
     return {"message": "Settings updated"}
 
 
@@ -378,32 +444,47 @@ def _get_sse_data():
     db = database.SessionLocal()
     try:
         hosts = db.query(models.HostDB).filter(models.HostDB.enabled == True).all()
-        status_data = db.query(models.PingResultDB)
         cutoff = datetime.utcnow() - timedelta(minutes=5)
+
+        host_ids = [h.id for h in hosts]
+        if host_ids:
+            recent_pings = (
+                db.query(models.PingResultDB)
+                .filter(
+                    models.PingResultDB.host_id.in_(host_ids),
+                    models.PingResultDB.timestamp >= cutoff,
+                )
+                .order_by(models.PingResultDB.timestamp.desc())
+                .all()
+            )
+        else:
+            recent_pings = []
+
+        latest_pings = {}
+        for p in recent_pings:
+            if p.host_id not in latest_pings:
+                latest_pings[p.host_id] = p
 
         host_list = []
         for h in hosts:
-            last_ping = (
-                db.query(models.PingResultDB)
-                .filter(models.PingResultDB.host_id == h.id, models.PingResultDB.timestamp >= cutoff)
-                .order_by(models.PingResultDB.timestamp.desc())
-                .first()
+            last_ping = latest_pings.get(h.id)
+            host_list.append(
+                {
+                    "id": h.id,
+                    "name": h.name,
+                    "last_status": h.last_status,
+                    "average_latency": h.average_latency,
+                    "maintenance": h.maintenance,
+                    "enabled": h.enabled,
+                    "group_name": h.group_name,
+                    "ip_address": h.ip_address,
+                    "monitor_type": h.monitor_type,
+                    "port": h.port,
+                    "ssl_monitor": h.ssl_monitor,
+                    "ssl_expiry_days": h.ssl_expiry_days,
+                    "latency_threshold_ms": getattr(h, "latency_threshold_ms", None),
+                }
             )
-            host_list.append({
-                "id": h.id,
-                "name": h.name,
-                "last_status": h.last_status,
-                "average_latency": h.average_latency,
-                "maintenance": h.maintenance,
-                "enabled": h.enabled,
-                "group_name": h.group_name,
-                "ip_address": h.ip_address,
-                "monitor_type": h.monitor_type,
-                "port": h.port,
-                "ssl_monitor": h.ssl_monitor,
-                "ssl_expiry_days": h.ssl_expiry_days,
-                "latency_threshold_ms": getattr(h, "latency_threshold_ms", None),
-            })
         return host_list
     finally:
         db.close()
@@ -429,10 +510,11 @@ async def event_stream(request: Request):
 # Heartbeat endpoint — for push-based monitors (cron jobs, scripts, services)
 @app.post("/heartbeat/{slug}")
 def receive_heartbeat(slug: str, db: Session = Depends(get_db)):
-    host = db.query(models.HostDB).filter(
-        models.HostDB.heartbeat_slug == slug,
-        models.HostDB.enabled == True
-    ).first()
+    host = (
+        db.query(models.HostDB)
+        .filter(models.HostDB.heartbeat_slug == slug, models.HostDB.enabled == True)
+        .first()
+    )
     if not host:
         raise HTTPException(status_code=404, detail="Heartbeat slug not found")
 
@@ -477,7 +559,10 @@ def export_metrics_csv(
 
     results = (
         db.query(models.PingResultDB)
-        .filter(models.PingResultDB.host_id == host_id, models.PingResultDB.timestamp >= cutoff)
+        .filter(
+            models.PingResultDB.host_id == host_id,
+            models.PingResultDB.timestamp >= cutoff,
+        )
         .order_by(models.PingResultDB.timestamp.asc())
         .all()
     )
@@ -486,17 +571,21 @@ def export_metrics_csv(
     writer = csv.writer(output)
     writer.writerow(["timestamp", "latency_ms", "status"])
     for r in results:
-        writer.writerow([
-            r.timestamp.isoformat(),
-            r.latency if r.latency is not None else "",
-            "UP" if r.latency is not None else "DOWN",
-        ])
+        writer.writerow(
+            [
+                r.timestamp.isoformat(),
+                r.latency if r.latency is not None else "",
+                "UP" if r.latency is not None else "DOWN",
+            ]
+        )
 
     output.seek(0)
     return StreamingResponse(
         iter([output.getvalue()]),
         media_type="text/csv",
-        headers={"Content-Disposition": f"attachment; filename=metrics_host_{host_id}_{range}.csv"},
+        headers={
+            "Content-Disposition": f"attachment; filename=metrics_host_{host_id}_{range}.csv"
+        },
     )
 
 
