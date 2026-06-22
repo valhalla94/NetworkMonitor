@@ -9,6 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from starlette.middleware.base import BaseHTTPMiddleware
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 from typing import List
 from datetime import timedelta, datetime
 import database
@@ -287,24 +288,36 @@ def get_network_status(db: Session = Depends(get_db)):
     cutoff = datetime.utcnow() - timedelta(minutes=5)
 
     host_ids = [h.id for h in hosts]
+    latest_pings = {}
 
     if host_ids:
-        recent_pings = (
-            db.query(models.PingResultDB)
+        # ⚡ Bolt: Optimized fetching latest pings using a subquery and join
+        # This replaces fetching all results within the last 5 minutes and manually filtering in Python.
+        # It improves database fetch speed and reduces memory usage footprint.
+        latest_pings_subq = (
+            db.query(
+                models.PingResultDB.host_id,
+                func.max(models.PingResultDB.timestamp).label('max_timestamp')
+            )
             .filter(
                 models.PingResultDB.host_id.in_(host_ids),
-                models.PingResultDB.timestamp >= cutoff,
+                models.PingResultDB.timestamp >= cutoff
             )
-            .order_by(models.PingResultDB.timestamp.desc())
-            .all()
+            .group_by(models.PingResultDB.host_id)
+            .subquery()
         )
-    else:
-        recent_pings = []
 
-    latest_pings = {}
-    for p in recent_pings:
-        if p.host_id not in latest_pings:
-            latest_pings[p.host_id] = p
+        latest_pings_query = (
+            db.query(models.PingResultDB)
+            .join(
+                latest_pings_subq,
+                (models.PingResultDB.host_id == latest_pings_subq.c.host_id) &
+                (models.PingResultDB.timestamp == latest_pings_subq.c.max_timestamp)
+            )
+        )
+
+        latest_pings_list = latest_pings_query.all()
+        latest_pings = {p.host_id: p for p in latest_pings_list}
 
     total_hosts = 0
     reachable_hosts = 0
@@ -447,23 +460,35 @@ def _get_sse_data():
         cutoff = datetime.utcnow() - timedelta(minutes=5)
 
         host_ids = [h.id for h in hosts]
+        latest_pings = {}
         if host_ids:
-            recent_pings = (
-                db.query(models.PingResultDB)
+            # ⚡ Bolt: Optimized fetching latest pings using a subquery and join
+            # This replaces fetching all results within the last 5 minutes and manually filtering in Python.
+            # It improves database fetch speed and reduces memory usage footprint.
+            latest_pings_subq = (
+                db.query(
+                    models.PingResultDB.host_id,
+                    func.max(models.PingResultDB.timestamp).label('max_timestamp')
+                )
                 .filter(
                     models.PingResultDB.host_id.in_(host_ids),
-                    models.PingResultDB.timestamp >= cutoff,
+                    models.PingResultDB.timestamp >= cutoff
                 )
-                .order_by(models.PingResultDB.timestamp.desc())
-                .all()
+                .group_by(models.PingResultDB.host_id)
+                .subquery()
             )
-        else:
-            recent_pings = []
 
-        latest_pings = {}
-        for p in recent_pings:
-            if p.host_id not in latest_pings:
-                latest_pings[p.host_id] = p
+            latest_pings_query = (
+                db.query(models.PingResultDB)
+                .join(
+                    latest_pings_subq,
+                    (models.PingResultDB.host_id == latest_pings_subq.c.host_id) &
+                    (models.PingResultDB.timestamp == latest_pings_subq.c.max_timestamp)
+                )
+            )
+
+            latest_pings_list = latest_pings_query.all()
+            latest_pings = {p.host_id: p for p in latest_pings_list}
 
         host_list = []
         for h in hosts:
