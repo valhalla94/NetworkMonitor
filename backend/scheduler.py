@@ -31,7 +31,11 @@ def check_public_ip():
         response = requests.get("https://api.ipify.org?format=json", timeout=10)
         if response.status_code == 200:
             ip_address = response.json().get("ip")
-            last_record = db.query(PublicIPHistoryDB).order_by(PublicIPHistoryDB.timestamp.desc()).first()
+            last_record = (
+                db.query(PublicIPHistoryDB)
+                .order_by(PublicIPHistoryDB.timestamp.desc())
+                .first()
+            )
             last_ip = last_record.ip_address if last_record else None
             if last_ip != ip_address:
                 logger.info(f"Public IP changed: {last_ip} → {ip_address}")
@@ -64,15 +68,19 @@ def _run_speedtest_sync():
         download_mbps = data["download"] / 1_000_000
         upload_mbps = data["upload"] / 1_000_000
         ping_ms = data["ping"]
-        logger.info(f"Speedtest: D:{download_mbps:.2f} Mbps U:{upload_mbps:.2f} Mbps P:{ping_ms:.2f}ms")
-        db.add(SpeedTestResultDB(
-            download=download_mbps,
-            upload=upload_mbps,
-            ping=ping_ms,
-            server_id=data["server"]["id"],
-            server_name=data["server"]["name"],
-            server_country=data["server"]["country"],
-        ))
+        logger.info(
+            f"Speedtest: D:{download_mbps:.2f} Mbps U:{upload_mbps:.2f} Mbps P:{ping_ms:.2f}ms"
+        )
+        db.add(
+            SpeedTestResultDB(
+                download=download_mbps,
+                upload=upload_mbps,
+                ping=ping_ms,
+                server_id=data["server"]["id"],
+                server_name=data["server"]["name"],
+                server_country=data["server"]["country"],
+            )
+        )
         db.commit()
     except Exception as e:
         logger.error(f"Error running speedtest: {e}")
@@ -104,7 +112,11 @@ def check_ssl_job():
     logger.info("Starting SSL Certificate Check Job...")
     db: Session = SessionLocal()
     try:
-        hosts = db.query(HostDB).filter(HostDB.ssl_monitor == True, HostDB.enabled == True).all()
+        hosts = (
+            db.query(HostDB)
+            .filter(HostDB.ssl_monitor == True, HostDB.enabled == True)
+            .all()
+        )
         for host in hosts:
             try:
                 target_host = host.ip_address
@@ -140,7 +152,9 @@ def check_ssl_expiry(host: str, port: int = 443):
         with socket.create_connection((host, port), timeout=5) as sock:
             with context.wrap_socket(sock, server_hostname=host) as ssock:
                 cert = ssock.getpeercert()
-                expiry_date = datetime.strptime(cert["notAfter"], r"%b %d %H:%M:%S %Y %Z")
+                expiry_date = datetime.strptime(
+                    cert["notAfter"], r"%b %d %H:%M:%S %Y %Z"
+                )
                 return (expiry_date - datetime.utcnow()).days
     except Exception as e:
         logger.warning(f"SSL check failed for {host}: {e}")
@@ -157,7 +171,14 @@ def _is_in_maintenance_window(host: HostDB) -> bool:
     return False
 
 
-def ping_host(host_id: int, ip_address: str, name: str, port: int = None, monitor_type: str = "icmp", expected_status: int = 200):
+def ping_host(
+    host_id: int,
+    ip_address: str,
+    name: str,
+    port: int = None,
+    monitor_type: str = "icmp",
+    expected_status: int = 200,
+):
     try:
         latency_val = -1.0
 
@@ -168,12 +189,21 @@ def ping_host(host_id: int, ip_address: str, name: str, port: int = None, monito
             try:
                 host = db.query(HostDB).filter(HostDB.id == host_id).first()
                 if host and host.heartbeat_interval:
-                    cutoff = datetime.utcnow() - timedelta(seconds=host.heartbeat_interval * 2)
-                    last = db.query(PingResultDB).filter(
-                        PingResultDB.host_id == host_id,
-                        PingResultDB.timestamp >= cutoff
-                    ).order_by(PingResultDB.timestamp.desc()).first()
-                    latency_val = last.latency if last and last.latency is not None else -1.0
+                    cutoff = datetime.utcnow() - timedelta(
+                        seconds=host.heartbeat_interval * 2
+                    )
+                    last = (
+                        db.query(PingResultDB)
+                        .filter(
+                            PingResultDB.host_id == host_id,
+                            PingResultDB.timestamp >= cutoff,
+                        )
+                        .order_by(PingResultDB.timestamp.desc())
+                        .first()
+                    )
+                    latency_val = (
+                        last.latency if last and last.latency is not None else -1.0
+                    )
             finally:
                 db.close()
         elif monitor_type == "http":
@@ -190,7 +220,9 @@ def ping_host(host_id: int, ip_address: str, name: str, port: int = None, monito
                 sock.close()
                 if result == 0:
                     latency_val = (end_time - start_time) * 1000
-                    logger.info(f"TCP {name} ({ip_address}:{port}): {latency_val:.2f}ms")
+                    logger.info(
+                        f"TCP {name} ({ip_address}:{port}): {latency_val:.2f}ms"
+                    )
                 else:
                     logger.warning(f"TCP failed for {name} ({ip_address}:{port})")
             except Exception as e:
@@ -206,10 +238,12 @@ def ping_host(host_id: int, ip_address: str, name: str, port: int = None, monito
         # Save result
         db = SessionLocal()
         try:
-            db.add(PingResultDB(
-                host_id=host_id,
-                latency=latency_val if latency_val >= 0 else None,
-            ))
+            db.add(
+                PingResultDB(
+                    host_id=host_id,
+                    latency=latency_val if latency_val >= 0 else None,
+                )
+            )
             db.commit()
         except Exception as e:
             logger.error(f"Error saving ping result: {e}")
@@ -259,17 +293,23 @@ def check_heartbeat_timeouts():
     """Check heartbeat-type hosts for missed heartbeats."""
     db = SessionLocal()
     try:
-        hosts = db.query(HostDB).filter(
-            HostDB.monitor_type == "heartbeat",
-            HostDB.enabled == True,
-            HostDB.heartbeat_interval != None,
-        ).all()
+        hosts = (
+            db.query(HostDB)
+            .filter(
+                HostDB.monitor_type == "heartbeat",
+                HostDB.enabled == True,
+                HostDB.heartbeat_interval != None,
+            )
+            .all()
+        )
 
         for host in hosts:
             cutoff = datetime.utcnow() - timedelta(seconds=host.heartbeat_interval * 2)
             last = (
                 db.query(PingResultDB)
-                .filter(PingResultDB.host_id == host.id, PingResultDB.timestamp >= cutoff)
+                .filter(
+                    PingResultDB.host_id == host.id, PingResultDB.timestamp >= cutoff
+                )
                 .order_by(PingResultDB.timestamp.desc())
                 .first()
             )
@@ -288,6 +328,46 @@ def check_heartbeat_timeouts():
         db.close()
 
 
+def _remove_stale_jobs(enabled_host_ids, ping_jobs):
+    processed_host_ids = set()
+    for job_id, job in ping_jobs.items():
+        try:
+            host_id = int(job_id.replace("ping_", ""))
+            if host_id not in enabled_host_ids:
+                scheduler.remove_job(job_id)
+            else:
+                host = enabled_host_ids[host_id]
+                processed_host_ids.add(host_id)
+                current_interval = job.trigger.interval.total_seconds()
+                if current_interval != host.interval:
+                    scheduler.reschedule_job(
+                        job_id, trigger="interval", seconds=host.interval
+                    )
+        except ValueError:
+            continue
+    return processed_host_ids
+
+
+def _add_or_update_jobs(enabled_host_ids, processed_host_ids):
+    for host_id, host in enabled_host_ids.items():
+        if host_id not in processed_host_ids:
+            scheduler.add_job(
+                ping_host,
+                "interval",
+                seconds=host.interval,
+                args=[
+                    host.id,
+                    host.ip_address,
+                    host.name,
+                    host.port,
+                    host.monitor_type,
+                    host.expected_status_code,
+                ],
+                id=f"ping_{host.id}",
+                replace_existing=True,
+            )
+
+
 def update_jobs():
     db: Session = SessionLocal()
     try:
@@ -295,32 +375,10 @@ def update_jobs():
         enabled_host_ids = {h.id: h for h in hosts}
         current_jobs = scheduler.get_jobs()
         ping_jobs = {job.id: job for job in current_jobs if job.id.startswith("ping_")}
-        processed_host_ids = set()
 
-        for job_id, job in ping_jobs.items():
-            try:
-                host_id = int(job_id.replace("ping_", ""))
-                if host_id not in enabled_host_ids:
-                    scheduler.remove_job(job_id)
-                else:
-                    host = enabled_host_ids[host_id]
-                    processed_host_ids.add(host_id)
-                    current_interval = job.trigger.interval.total_seconds()
-                    if current_interval != host.interval:
-                        scheduler.reschedule_job(job_id, trigger="interval", seconds=host.interval)
-            except ValueError:
-                continue
+        processed_host_ids = _remove_stale_jobs(enabled_host_ids, ping_jobs)
+        _add_or_update_jobs(enabled_host_ids, processed_host_ids)
 
-        for host_id, host in enabled_host_ids.items():
-            if host_id not in processed_host_ids:
-                scheduler.add_job(
-                    ping_host,
-                    "interval",
-                    seconds=host.interval,
-                    args=[host.id, host.ip_address, host.name, host.port, host.monitor_type, host.expected_status_code],
-                    id=f"ping_{host.id}",
-                    replace_existing=True,
-                )
         logger.info(f"Scheduler synced. Active ping jobs: {len(enabled_host_ids)}")
     except Exception as e:
         logger.error(f"Error updating jobs: {e}")
@@ -328,22 +386,54 @@ def update_jobs():
         db.close()
 
     if not scheduler.get_job("check_public_ip"):
-        scheduler.add_job(check_public_ip, "interval", minutes=30, id="check_public_ip", replace_existing=True)
+        scheduler.add_job(
+            check_public_ip,
+            "interval",
+            minutes=30,
+            id="check_public_ip",
+            replace_existing=True,
+        )
         scheduler.add_job(check_public_ip)
 
     if not scheduler.get_job("run_speedtest"):
-        scheduler.add_job(run_speedtest, "interval", hours=6, id="run_speedtest", replace_existing=True)
+        scheduler.add_job(
+            run_speedtest,
+            "interval",
+            hours=6,
+            id="run_speedtest",
+            replace_existing=True,
+        )
 
-    scheduler.add_job(calculate_average_latency, "interval", hours=6, id="calculate_average_latency", replace_existing=True)
+    scheduler.add_job(
+        calculate_average_latency,
+        "interval",
+        hours=6,
+        id="calculate_average_latency",
+        replace_existing=True,
+    )
     scheduler.add_job(calculate_average_latency)
 
-    scheduler.add_job(cleanup_old_data, "interval", days=1, id="cleanup_old_data", replace_existing=True)
+    scheduler.add_job(
+        cleanup_old_data,
+        "interval",
+        days=1,
+        id="cleanup_old_data",
+        replace_existing=True,
+    )
 
-    scheduler.add_job(check_ssl_job, "interval", days=1, id="check_ssl_job", replace_existing=True)
+    scheduler.add_job(
+        check_ssl_job, "interval", days=1, id="check_ssl_job", replace_existing=True
+    )
     scheduler.add_job(check_ssl_job)
 
     if not scheduler.get_job("check_heartbeat_timeouts"):
-        scheduler.add_job(check_heartbeat_timeouts, "interval", minutes=2, id="check_heartbeat_timeouts", replace_existing=True)
+        scheduler.add_job(
+            check_heartbeat_timeouts,
+            "interval",
+            minutes=2,
+            id="check_heartbeat_timeouts",
+            replace_existing=True,
+        )
 
 
 def start_scheduler():
@@ -360,7 +450,10 @@ def calculate_average_latency():
         cutoff_time = datetime.utcnow() - timedelta(hours=6)
 
         latency_results = (
-            db.query(PingResultDB.host_id, func.avg(PingResultDB.latency).label("avg_latency"))
+            db.query(
+                PingResultDB.host_id,
+                func.avg(PingResultDB.latency).label("avg_latency"),
+            )
             .filter(
                 PingResultDB.timestamp >= cutoff_time,
                 PingResultDB.latency != None,
@@ -389,11 +482,23 @@ def cleanup_old_data():
     db = SessionLocal()
     try:
         cutoff_date = datetime.utcnow() - timedelta(days=30)
-        deleted_pings = db.query(PingResultDB).filter(PingResultDB.timestamp < cutoff_date).delete()
-        deleted_speedtests = db.query(SpeedTestResultDB).filter(SpeedTestResultDB.timestamp < cutoff_date).delete()
-        deleted_ips = db.query(PublicIPHistoryDB).filter(PublicIPHistoryDB.timestamp < cutoff_date).delete()
+        deleted_pings = (
+            db.query(PingResultDB).filter(PingResultDB.timestamp < cutoff_date).delete()
+        )
+        deleted_speedtests = (
+            db.query(SpeedTestResultDB)
+            .filter(SpeedTestResultDB.timestamp < cutoff_date)
+            .delete()
+        )
+        deleted_ips = (
+            db.query(PublicIPHistoryDB)
+            .filter(PublicIPHistoryDB.timestamp < cutoff_date)
+            .delete()
+        )
         db.commit()
-        logger.info(f"Cleanup: {deleted_pings} pings, {deleted_speedtests} speedtests, {deleted_ips} IPs deleted.")
+        logger.info(
+            f"Cleanup: {deleted_pings} pings, {deleted_speedtests} speedtests, {deleted_ips} IPs deleted."
+        )
     except Exception as e:
         logger.error(f"Error during cleanup: {e}")
         db.rollback()
