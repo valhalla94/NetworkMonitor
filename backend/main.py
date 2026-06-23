@@ -8,7 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from starlette.middleware.base import BaseHTTPMiddleware
 from sqlalchemy.orm import Session
-from sqlalchemy import func
+from sqlalchemy import func, case
 from typing import List
 from datetime import timedelta, datetime
 import database
@@ -251,32 +251,30 @@ def get_uptime_history(
     delta = range_map.get(range, timedelta(days=30))
     cutoff = now - delta
 
+    # ⚡ Bolt: Optimized fetching and calculating uptime history
+    # Pushed the grouping and aggregation logic to the database instead of pulling all rows
+    # to memory and iterating in Python. Reduces memory usage significantly for large datasets.
     results_db = (
-        db.query(models.PingResultDB)
+        db.query(
+            func.strftime("%Y-%m-%d", models.PingResultDB.timestamp).label("day_key"),
+            func.count(models.PingResultDB.id).label("total"),
+            func.sum(case((models.PingResultDB.latency >= 0, 1), else_=0)).label("up")
+        )
         .filter(
             models.PingResultDB.host_id == host_id,
             models.PingResultDB.timestamp >= cutoff,
         )
-        .order_by(models.PingResultDB.timestamp.asc())
+        .group_by("day_key")
+        .order_by("day_key")
         .all()
     )
 
-    # Group by day
-    daily: dict = {}
-    for record in results_db:
-        day_key = record.timestamp.strftime("%Y-%m-%d")
-        if day_key not in daily:
-            daily[day_key] = {"total": 0, "up": 0}
-        daily[day_key]["total"] += 1
-        if record.latency is not None and record.latency >= 0:
-            daily[day_key]["up"] += 1
-
     return [
         {
-            "date": day,
-            "uptime": round(v["up"] / v["total"] * 100, 2) if v["total"] > 0 else 0,
+            "date": row.day_key,
+            "uptime": round((row.up or 0) / row.total * 100, 2) if row.total > 0 else 0,
         }
-        for day, v in sorted(daily.items())
+        for row in results_db
     ]
 
 
