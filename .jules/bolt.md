@@ -9,3 +9,7 @@
 ## 2024-08-01 - Optimize Fetching Metrics Data
 **Learning:** Found a performance bottleneck when the application fetches large amounts of metrics data via the `/metrics/{host_id}` and `/export/metrics/{host_id}` endpoints. SQLAlchemy was querying for entire `PingResultDB` objects and passing them back to python for processing. By unpacking only the `timestamp` and `latency` fields from the query natively, performance in processing large metrics timelines improved significantly and dropped memory payload parsing.
 **Action:** Always prefer selecting specific columns over full models when large numbers of records are fetched in SQLAlchemy to decrease database transfer overhead.
+
+## 2024-11-20 - Memoize expensive host list filtering and grouping
+**Learning:** Found a performance bottleneck where the `Dashboard.jsx` component would re-process the list of `hosts` (filtering, grouping, and sorting) on *every* single render loop. Because the component has a lot of state variables that are updated frequently (like metrics polling, chart loaders, and quick ping), the list was being iterated and re-grouped unnecessarily and taking up valuable render time on lower-end devices.
+**Action:** Use React's `useMemo` hook to cache the result of expensive array operations. By depending on `[hosts, searchQuery, statusFilter]`, the list processing is skipped when irrelevant state is updated, saving CPU cycles.
