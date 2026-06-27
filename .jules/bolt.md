@@ -13,3 +13,7 @@
 ## 2024-11-20 - Memoize expensive host list filtering and grouping
 **Learning:** Found a performance bottleneck where the `Dashboard.jsx` component would re-process the list of `hosts` (filtering, grouping, and sorting) on *every* single render loop. Because the component has a lot of state variables that are updated frequently (like metrics polling, chart loaders, and quick ping), the list was being iterated and re-grouped unnecessarily and taking up valuable render time on lower-end devices.
 **Action:** Use React's `useMemo` hook to cache the result of expensive array operations. By depending on `[hosts, searchQuery, statusFilter]`, the list processing is skipped when irrelevant state is updated, saving CPU cycles.
+
+## 2025-01-22 - Optimize Database Reads with Composite Index
+**Learning:** Found a performance bottleneck where querying `PingResultDB` by `host_id` and filtering/ordering by `timestamp` was slow for large datasets because it lacked a composite index. Separate indices on `host_id` and `timestamp` exist, but SQLite usually uses only one index per query, falling back to a sequential scan for the other.
+**Action:** Add a composite index on frequently paired query fields `(host_id, timestamp)` in SQLAlchemy using `Index('ix_name', 'col1', 'col2')` to significantly speed up range and exact-match queries that depend on both columns.
