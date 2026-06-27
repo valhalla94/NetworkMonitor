@@ -1,0 +1,3 @@
+## 2025-02-12 - Icon Button Accessibility
+**Learning:** Icon-only buttons for CRUD operations (like Edit, Delete, Save, Close) within tables or modals in the network monitor UI were missing `aria-label`s and visible keyboard focus states (`focus:outline-none focus-visible:ring-2`), making them inaccessible to screen readers and keyboard users.
+**Action:** Always ensure any icon-only button uses an explicit `aria-label` and `focus-visible:ring-2` to provide proper feedback for all modes of interaction. When validating these in UI test scripts, be aware that getting past the Settings login gate requires accurate API mocking (e.g. `api/auth/verify`, `api/token`, and `api/hosts`).
