@@ -5,6 +5,7 @@ from models import SettingsDB
 
 logger = logging.getLogger(__name__)
 
+
 class NotificationManager:
     def __init__(self):
         self.apobj = Apprise()
@@ -15,7 +16,11 @@ class NotificationManager:
         Loads the notification URL from the database.
         """
         try:
-            setting = db.query(SettingsDB).filter(SettingsDB.key == "notification_url").first()
+            setting = (
+                db.query(SettingsDB)
+                .filter(SettingsDB.key == "notification_url")
+                .first()
+            )
             if setting and setting.value:
                 # Clear existing configuration
                 self.apobj.clear()
@@ -33,8 +38,8 @@ class NotificationManager:
         Sends a notification.
         """
         if not self.apobj:
-             logger.warning("Notification Manager not configured. Skipping.")
-             return
+            logger.warning("Notification Manager not configured. Skipping.")
+            return
 
         try:
             status = self.apobj.notify(
@@ -47,5 +52,6 @@ class NotificationManager:
                 logger.warning(f"Failed to send notification: {title}")
         except Exception as e:
             logger.error(f"Error sending notification: {e}")
+
 
 notification_manager = NotificationManager()

@@ -3,6 +3,7 @@ from sqlalchemy import text
 from sqlalchemy.pool import StaticPool
 import database
 
+
 def test_migrate_db_skips_if_no_hosts_table(monkeypatch):
     """Test that migrate_db exits cleanly if the hosts table does not exist."""
 
@@ -26,7 +27,9 @@ def test_migrate_db_skips_if_no_hosts_table(monkeypatch):
     # Verify no tables were created by the migration script
     db = TestSession()
     try:
-        result = db.execute(text("SELECT name FROM sqlite_master WHERE type='table'")).fetchall()
+        result = db.execute(
+            text("SELECT name FROM sqlite_master WHERE type='table'")
+        ).fetchall()
         assert len(result) == 0
     finally:
         db.close()
@@ -51,23 +54,23 @@ def test_migrate_db_adds_missing_columns(monkeypatch):
     try:
         # Create an older version of the schema manually
         # 'hosts' table with missing columns
-        db.execute(text('''
+        db.execute(text("""
             CREATE TABLE hosts (
                 id INTEGER PRIMARY KEY,
                 name VARCHAR,
                 ip_address VARCHAR
             )
-        '''))
+        """))
 
         # 'speedtest_results' table with missing columns
-        db.execute(text('''
+        db.execute(text("""
             CREATE TABLE speedtest_results (
                 id INTEGER PRIMARY KEY,
                 download FLOAT,
                 upload FLOAT,
                 ping FLOAT
             )
-        '''))
+        """))
         db.commit()
     finally:
         db.close()
@@ -88,7 +91,9 @@ def test_migrate_db_adds_missing_columns(monkeypatch):
         assert "maintenance_end" in column_names_hosts
 
         # Check speedtest_results table
-        result_speedtest = db.execute(text("PRAGMA table_info(speedtest_results)")).fetchall()
+        result_speedtest = db.execute(
+            text("PRAGMA table_info(speedtest_results)")
+        ).fetchall()
         column_names_speedtest = [row[1] for row in result_speedtest]
 
         assert "server_id" in column_names_speedtest

@@ -17,6 +17,7 @@ def db_session(client):
     Since we use the test client's engine (in-memory SQLite), we yield a session.
     """
     import database
+
     db = database.SessionLocal()
     try:
         yield db
@@ -77,7 +78,9 @@ def client(db_session):
 
 @pytest.fixture(scope="session")
 def auth_token(client):
-    response = client.post("/token", data={"username": "admin", "password": "testpassword123"})
+    response = client.post(
+        "/token", data={"username": "admin", "password": "testpassword123"}
+    )
     assert response.status_code == 200
     return response.json()["access_token"]
 
