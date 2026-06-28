@@ -1,4 +1,13 @@
-from sqlalchemy import Column, Integer, String, Boolean, Float, DateTime, ForeignKey, Index
+from sqlalchemy import (
+    Column,
+    Integer,
+    String,
+    Boolean,
+    Float,
+    DateTime,
+    ForeignKey,
+    Index,
+)
 from datetime import datetime
 from pydantic import BaseModel
 from database import Base
@@ -22,11 +31,19 @@ class HostDB(Base):
     last_status = Column(String, default="UNKNOWN")
     ssl_expiry_days = Column(Integer, nullable=True)
     ssl_error = Column(String, nullable=True)
-    latency_threshold_ms = Column(Float, nullable=True)  # Alert if avg latency exceeds this
-    heartbeat_slug = Column(String, nullable=True, unique=True, index=True)  # For heartbeat monitors
+    latency_threshold_ms = Column(
+        Float, nullable=True
+    )  # Alert if avg latency exceeds this
+    heartbeat_slug = Column(
+        String, nullable=True, unique=True, index=True
+    )  # For heartbeat monitors
     heartbeat_interval = Column(Integer, nullable=True)  # Expected interval in seconds
-    maintenance_start = Column(DateTime, nullable=True)  # Scheduled maintenance window start
-    maintenance_end = Column(DateTime, nullable=True)    # Scheduled maintenance window end
+    maintenance_start = Column(
+        DateTime, nullable=True
+    )  # Scheduled maintenance window start
+    maintenance_end = Column(
+        DateTime, nullable=True
+    )  # Scheduled maintenance window end
 
 
 class SettingsDB(Base):

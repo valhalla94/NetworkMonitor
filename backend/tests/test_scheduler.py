@@ -6,10 +6,13 @@ import ssl
 
 from scheduler import check_ssl_expiry
 
+
 @patch("scheduler.datetime")
 @patch("scheduler.socket.create_connection")
 @patch("scheduler.ssl.create_default_context")
-def test_check_ssl_expiry_valid_cert(mock_ssl_context, mock_create_connection, mock_datetime):
+def test_check_ssl_expiry_valid_cert(
+    mock_ssl_context, mock_create_connection, mock_datetime
+):
     # Setup mock current time
     mock_now = datetime(2023, 1, 1, 12, 0, 0)
     mock_datetime.utcnow.return_value = mock_now
@@ -18,9 +21,7 @@ def test_check_ssl_expiry_valid_cert(mock_ssl_context, mock_create_connection, m
 
     # Setup mock cert with expiry in 10 days
     expiry_date = mock_now + timedelta(days=10)
-    mock_cert = {
-        "notAfter": expiry_date.strftime("%b %d %H:%M:%S %Y GMT")
-    }
+    mock_cert = {"notAfter": expiry_date.strftime("%b %d %H:%M:%S %Y GMT")}
 
     mock_context_instance = MagicMock()
     mock_ssl_context.return_value = mock_context_instance
@@ -38,13 +39,17 @@ def test_check_ssl_expiry_valid_cert(mock_ssl_context, mock_create_connection, m
     # Verify
     assert days == 10
     mock_create_connection.assert_called_once_with(("example.com", 443), timeout=5)
-    mock_context_instance.wrap_socket.assert_called_once_with(mock_sock, server_hostname="example.com")
+    mock_context_instance.wrap_socket.assert_called_once_with(
+        mock_sock, server_hostname="example.com"
+    )
 
 
 @patch("scheduler.datetime")
 @patch("scheduler.socket.create_connection")
 @patch("scheduler.ssl.create_default_context")
-def test_check_ssl_expiry_expired_cert(mock_ssl_context, mock_create_connection, mock_datetime):
+def test_check_ssl_expiry_expired_cert(
+    mock_ssl_context, mock_create_connection, mock_datetime
+):
     # Setup mock current time
     mock_now = datetime(2023, 1, 1, 12, 0, 0)
     mock_datetime.utcnow.return_value = mock_now
@@ -52,9 +57,7 @@ def test_check_ssl_expiry_expired_cert(mock_ssl_context, mock_create_connection,
 
     # Setup mock cert with expiry 5 days ago
     expiry_date = mock_now - timedelta(days=5)
-    mock_cert = {
-        "notAfter": expiry_date.strftime("%b %d %H:%M:%S %Y GMT")
-    }
+    mock_cert = {"notAfter": expiry_date.strftime("%b %d %H:%M:%S %Y GMT")}
 
     mock_context_instance = MagicMock()
     mock_ssl_context.return_value = mock_context_instance

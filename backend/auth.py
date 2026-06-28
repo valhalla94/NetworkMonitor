@@ -12,7 +12,7 @@ SECRET_KEY = os.getenv("SECRET_KEY")
 if not SECRET_KEY:
     raise RuntimeError(
         "SECRET_KEY environment variable is not set.\n"
-        "Generate a secure key: python -c \"import secrets; print(secrets.token_hex(32))\"\n"
+        'Generate a secure key: python -c "import secrets; print(secrets.token_hex(32))"\n'
         "Then set it in your .env file or docker-compose environment."
     )
 
