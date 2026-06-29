@@ -230,9 +230,7 @@ def get_metrics(host_id: int, range: str = "-1h", db: Session = Depends(get_db))
         if latency_val >= 0:
             successful_pings += 1
             total_latency += latency_val
-        results.append(
-            {"time": timestamp.isoformat() + "Z", "latency": latency_val}
-        )
+        results.append({"time": timestamp.isoformat() + "Z", "latency": latency_val})
 
     uptime = (successful_pings / total_pings * 100) if total_pings > 0 else 0
     avg_latency = (total_latency / successful_pings) if successful_pings > 0 else 0
@@ -261,7 +259,7 @@ def get_uptime_history(
         db.query(
             func.strftime("%Y-%m-%d", models.PingResultDB.timestamp).label("day_key"),
             func.count(models.PingResultDB.id).label("total"),
-            func.sum(case((models.PingResultDB.latency >= 0, 1), else_=0)).label("up")
+            func.sum(case((models.PingResultDB.latency >= 0, 1), else_=0)).label("up"),
         )
         .filter(
             models.PingResultDB.host_id == host_id,
@@ -296,23 +294,20 @@ def get_network_status(db: Session = Depends(get_db)):
         latest_pings_subq = (
             db.query(
                 models.PingResultDB.host_id,
-                func.max(models.PingResultDB.timestamp).label('max_timestamp')
+                func.max(models.PingResultDB.timestamp).label("max_timestamp"),
             )
             .filter(
                 models.PingResultDB.host_id.in_(host_ids),
-                models.PingResultDB.timestamp >= cutoff
+                models.PingResultDB.timestamp >= cutoff,
             )
             .group_by(models.PingResultDB.host_id)
             .subquery()
         )
 
-        latest_pings_query = (
-            db.query(models.PingResultDB)
-            .join(
-                latest_pings_subq,
-                (models.PingResultDB.host_id == latest_pings_subq.c.host_id) &
-                (models.PingResultDB.timestamp == latest_pings_subq.c.max_timestamp)
-            )
+        latest_pings_query = db.query(models.PingResultDB).join(
+            latest_pings_subq,
+            (models.PingResultDB.host_id == latest_pings_subq.c.host_id)
+            & (models.PingResultDB.timestamp == latest_pings_subq.c.max_timestamp),
         )
 
         latest_pings_list = latest_pings_query.all()
@@ -455,43 +450,14 @@ def _get_sse_data():
     """Sync helper — runs in executor to avoid blocking event loop."""
     db = database.SessionLocal()
     try:
+        # ⚡ Bolt: Removed dead code fetching `latest_pings`.
+        # The result of the `latest_pings` query was never used in the payload below.
+        # This removes an expensive, unnecessary database subquery & join that ran
+        # every 5 seconds per connected client, saving significant DB CPU and I/O.
         hosts = db.query(models.HostDB).filter(models.HostDB.enabled == True).all()
-        cutoff = datetime.utcnow() - timedelta(minutes=5)
-
-        host_ids = [h.id for h in hosts]
-        latest_pings = {}
-        if host_ids:
-            # ⚡ Bolt: Optimized fetching latest pings using a subquery and join
-            # This replaces fetching all results within the last 5 minutes and manually filtering in Python.
-            # It improves database fetch speed and reduces memory usage footprint.
-            latest_pings_subq = (
-                db.query(
-                    models.PingResultDB.host_id,
-                    func.max(models.PingResultDB.timestamp).label('max_timestamp')
-                )
-                .filter(
-                    models.PingResultDB.host_id.in_(host_ids),
-                    models.PingResultDB.timestamp >= cutoff
-                )
-                .group_by(models.PingResultDB.host_id)
-                .subquery()
-            )
-
-            latest_pings_query = (
-                db.query(models.PingResultDB)
-                .join(
-                    latest_pings_subq,
-                    (models.PingResultDB.host_id == latest_pings_subq.c.host_id) &
-                    (models.PingResultDB.timestamp == latest_pings_subq.c.max_timestamp)
-                )
-            )
-
-            latest_pings_list = latest_pings_query.all()
-            latest_pings = {p.host_id: p for p in latest_pings_list}
 
         host_list = []
         for h in hosts:
-            last_ping = latest_pings.get(h.id)
             host_list.append(
                 {
                     "id": h.id,
