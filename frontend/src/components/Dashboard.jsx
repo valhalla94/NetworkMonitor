@@ -78,10 +78,16 @@ const Dashboard = () => {
             es.addEventListener('hosts_update', (event) => {
                 try {
                     const data = JSON.parse(event.data);
+
+                    // ⚡ Bolt: Replaced O(N^2) array lookup with O(N) Map lookup
+                    // Creating a map of updated hosts to avoid nested iteration inside `prev.map`
+                    // which blocks the main thread on every SSE update (every 5 seconds).
+                    const dataMap = new Map(data.map(h => [h.id, h]));
+
                     setHosts(prev => {
                         if (prev.length === 0) return prev;
                         return prev.map(host => {
-                            const updated = data.find(h => h.id === host.id);
+                            const updated = dataMap.get(host.id);
                             return updated ? { ...host, ...updated } : host;
                         });
                     });
@@ -124,6 +130,7 @@ const Dashboard = () => {
             clearInterval(ipInterval);
             clearInterval(speedInterval);
         };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     useEffect(() => {
@@ -138,21 +145,7 @@ const Dashboard = () => {
         }
     }, [publicIpHistory]);
 
-    useEffect(() => {
-        if (selectedHost) {
-            fetchMetrics(selectedHost.id);
-            const interval = setInterval(() => fetchMetrics(selectedHost.id), 30000);
-            return () => clearInterval(interval);
-        }
-    }, [selectedHost, timeRange]);
-
-    useEffect(() => {
-        if (selectedHost && showUptimeChart) {
-            fetchUptimeHistory(selectedHost.id);
-        }
-    }, [selectedHost, showUptimeChart]);
-
-    const fetchMetrics = async (hostId) => {
+    const fetchMetrics = useCallback(async (hostId) => {
         setIsChartLoading(true);
         try {
             const response = await getMetrics(hostId, timeRange);
@@ -169,16 +162,30 @@ const Dashboard = () => {
         } finally {
             setIsChartLoading(false);
         }
-    };
+    }, [timeRange]);
 
-    const fetchUptimeHistory = async (hostId) => {
+    const fetchUptimeHistory = useCallback(async (hostId) => {
         try {
             const response = await getUptimeHistory(hostId, '-30d');
             setUptimeHistory(response.data);
         } catch (error) {
             console.error('Error fetching uptime history:', error);
         }
-    };
+    }, []);
+
+    useEffect(() => {
+        if (selectedHost) {
+            fetchMetrics(selectedHost.id);
+            const interval = setInterval(() => fetchMetrics(selectedHost.id), 30000);
+            return () => clearInterval(interval);
+        }
+    }, [selectedHost, fetchMetrics]);
+
+    useEffect(() => {
+        if (selectedHost && showUptimeChart) {
+            fetchUptimeHistory(selectedHost.id);
+        }
+    }, [selectedHost, showUptimeChart, fetchUptimeHistory]);
 
     const handleRunSpeedTest = async () => {
         setIsSpeedTestRunning(true);
