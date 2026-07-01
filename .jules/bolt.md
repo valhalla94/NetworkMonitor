@@ -17,3 +17,7 @@
 ## 2025-01-22 - Optimize Database Reads with Composite Index
 **Learning:** Found a performance bottleneck where querying `PingResultDB` by `host_id` and filtering/ordering by `timestamp` was slow for large datasets because it lacked a composite index. Separate indices on `host_id` and `timestamp` exist, but SQLite usually uses only one index per query, falling back to a sequential scan for the other.
 **Action:** Add a composite index on frequently paired query fields `(host_id, timestamp)` in SQLAlchemy using `Index('ix_name', 'col1', 'col2')` to significantly speed up range and exact-match queries that depend on both columns.
+
+## 2026-07-01 - Optimize SSE State Updates
+**Learning:** Found a performance bottleneck in the frontend SSE event handler (`hosts_update`) where the application merged background updates into local state using an O(N^2) operation (`prev.map` containing `data.find`). This blocked the main UI thread every 5 seconds on larger host lists.
+**Action:** Replace nested array `.find()` lookups during state merges with an O(N) `Map` or dictionary approach. Building a map first and using O(1) `.get()` lookups prevents blocking the main thread during high-frequency data merges.
