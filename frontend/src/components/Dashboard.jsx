@@ -42,32 +42,32 @@ const Dashboard = () => {
         }
     }, [selectedHost]);
 
-    const fetchNetworkStatus = async () => {
+    const fetchNetworkStatus = useCallback(async () => {
         try {
             const response = await getNetworkStatus();
             setNetworkStatus(response.data);
         } catch (error) {
             console.error('Error fetching network status:', error);
         }
-    };
+    }, []);
 
-    const fetchPublicIpHistory = async () => {
+    const fetchPublicIpHistory = useCallback(async () => {
         try {
             const response = await getPublicIpHistory();
             setPublicIpHistory(response.data);
         } catch (error) {
             console.error('Error fetching IP history:', error);
         }
-    };
+    }, []);
 
-    const fetchSpeedTestHistory = async () => {
+    const fetchSpeedTestHistory = useCallback(async () => {
         try {
             const response = await getSpeedTestHistory();
             setSpeedTestHistory(response.data);
         } catch (error) {
             console.error('Error fetching speedtest history:', error);
         }
-    };
+    }, []);
 
     // SSE connection for real-time host updates
     useEffect(() => {
@@ -78,10 +78,15 @@ const Dashboard = () => {
             es.addEventListener('hosts_update', (event) => {
                 try {
                     const data = JSON.parse(event.data);
+
+                    // ⚡ Bolt: Use an O(1) Map lookup instead of O(N^2) nested array searches (prev.map + data.find).
+                    // Impact: Prevents blocking the main UI thread during high-frequency SSE updates, especially with many hosts.
+                    const updatesMap = new Map(data.map(h => [h.id, h]));
+
                     setHosts(prev => {
                         if (prev.length === 0) return prev;
                         return prev.map(host => {
-                            const updated = data.find(h => h.id === host.id);
+                            const updated = updatesMap.get(host.id);
                             return updated ? { ...host, ...updated } : host;
                         });
                     });
@@ -124,7 +129,7 @@ const Dashboard = () => {
             clearInterval(ipInterval);
             clearInterval(speedInterval);
         };
-    }, []);
+    }, [fetchHosts, fetchNetworkStatus, fetchPublicIpHistory, fetchSpeedTestHistory]);
 
     useEffect(() => {
         if (publicIpHistory.length > 0) {
@@ -138,21 +143,7 @@ const Dashboard = () => {
         }
     }, [publicIpHistory]);
 
-    useEffect(() => {
-        if (selectedHost) {
-            fetchMetrics(selectedHost.id);
-            const interval = setInterval(() => fetchMetrics(selectedHost.id), 30000);
-            return () => clearInterval(interval);
-        }
-    }, [selectedHost, timeRange]);
-
-    useEffect(() => {
-        if (selectedHost && showUptimeChart) {
-            fetchUptimeHistory(selectedHost.id);
-        }
-    }, [selectedHost, showUptimeChart]);
-
-    const fetchMetrics = async (hostId) => {
+    const fetchMetrics = useCallback(async (hostId) => {
         setIsChartLoading(true);
         try {
             const response = await getMetrics(hostId, timeRange);
@@ -169,16 +160,30 @@ const Dashboard = () => {
         } finally {
             setIsChartLoading(false);
         }
-    };
+    }, [timeRange]);
 
-    const fetchUptimeHistory = async (hostId) => {
+    const fetchUptimeHistory = useCallback(async (hostId) => {
         try {
             const response = await getUptimeHistory(hostId, '-30d');
             setUptimeHistory(response.data);
         } catch (error) {
             console.error('Error fetching uptime history:', error);
         }
-    };
+    }, []);
+
+    useEffect(() => {
+        if (selectedHost) {
+            fetchMetrics(selectedHost.id);
+            const interval = setInterval(() => fetchMetrics(selectedHost.id), 30000);
+            return () => clearInterval(interval);
+        }
+    }, [selectedHost, fetchMetrics]);
+
+    useEffect(() => {
+        if (selectedHost && showUptimeChart) {
+            fetchUptimeHistory(selectedHost.id);
+        }
+    }, [selectedHost, showUptimeChart, fetchUptimeHistory]);
 
     const handleRunSpeedTest = async () => {
         setIsSpeedTestRunning(true);
