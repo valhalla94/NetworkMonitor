@@ -17,3 +17,7 @@
 ## 2025-01-22 - Optimize Database Reads with Composite Index
 **Learning:** Found a performance bottleneck where querying `PingResultDB` by `host_id` and filtering/ordering by `timestamp` was slow for large datasets because it lacked a composite index. Separate indices on `host_id` and `timestamp` exist, but SQLite usually uses only one index per query, falling back to a sequential scan for the other.
 **Action:** Add a composite index on frequently paired query fields `(host_id, timestamp)` in SQLAlchemy using `Index('ix_name', 'col1', 'col2')` to significantly speed up range and exact-match queries that depend on both columns.
+
+## 2026-07-02 - Optimize Frontend React state merging with SSE events
+**Learning:** Found a major performance bottleneck where the `Dashboard.jsx` frontend component handled incoming SSE `hosts_update` messages. It was executing an O(N^2) operation to merge states by looping through existing hosts and using `.find()` inside the map loop against the incoming batch data. This blocked the main UI thread during frequent updates for deployments with many hosts.
+**Action:** When merging high-frequency background updates (like SSE data) into React state arrays, use O(1) `Map` or dictionary lookups based on a unique ID instead of nested array `.find()` loops inside `.map()`. Also, be very careful to properly `useCallback` any functions that are placed in `useEffect` dependency arrays to prevent component render-loop death.
