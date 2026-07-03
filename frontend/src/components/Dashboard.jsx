@@ -348,9 +348,10 @@ const Dashboard = () => {
                     </div>
                     <form onSubmit={handleQuickPing} className="flex gap-2 mb-4">
                         <input type="text" value={quickPingTarget} onChange={(e) => setQuickPingTarget(e.target.value)}
-                            placeholder="IP or Hostname" disabled={quickPingLoading}
+                            placeholder="IP or Hostname" disabled={quickPingLoading} aria-label="Quick ping target IP or hostname"
                             className="flex-1 bg-slate-800/50 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-amber-500 transition-colors disabled:opacity-50" />
                         <button type="submit" disabled={quickPingLoading || !quickPingTarget}
+                            aria-label="Execute quick ping" title="Execute quick ping"
                             className="bg-amber-600 hover:bg-amber-500 disabled:opacity-50 text-white px-3 py-2 rounded-lg transition-all flex items-center gap-1.5 font-medium cursor-pointer text-sm">
                             {quickPingLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4 fill-current" />}
                         </button>
@@ -391,12 +392,13 @@ const Dashboard = () => {
             {/* Search + Filter bar */}
             <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
                 <div className="relative flex-1">
-                    <Search className="absolute left-3 top-2.5 w-4 h-4 text-slate-500" />
+                    <Search className="absolute left-3 top-2.5 w-4 h-4 text-slate-500" aria-hidden="true" />
                     <input
                         type="text"
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                         placeholder="Search hosts by name, IP, or group..."
+                        aria-label="Search hosts"
                         className="w-full bg-slate-800/50 border border-slate-700 rounded-xl pl-9 pr-4 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500 transition-colors"
                     />
                 </div>
