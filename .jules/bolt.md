@@ -17,3 +17,7 @@
 ## 2025-01-22 - Optimize Database Reads with Composite Index
 **Learning:** Found a performance bottleneck where querying `PingResultDB` by `host_id` and filtering/ordering by `timestamp` was slow for large datasets because it lacked a composite index. Separate indices on `host_id` and `timestamp` exist, but SQLite usually uses only one index per query, falling back to a sequential scan for the other.
 **Action:** Add a composite index on frequently paired query fields `(host_id, timestamp)` in SQLAlchemy using `Index('ix_name', 'col1', 'col2')` to significantly speed up range and exact-match queries that depend on both columns.
+
+## 2025-02-14 - Optimize state merging complexity in SSE listener
+**Learning:** Found a performance bottleneck where the SSE event listener for real-time updates merged the new event data into the React `hosts` array state by performing a `.find()` on the new data array for every item in the `prev` array. This resulted in O(N^2) complexity, blocking the main UI thread during high-frequency updates when monitoring many hosts.
+**Action:** Build an O(1) lookup Map from the new data array *before* iterating over the previous state array, reducing state merging complexity to O(N) for large real-time background updates.

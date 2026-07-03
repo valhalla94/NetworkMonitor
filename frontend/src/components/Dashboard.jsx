@@ -78,10 +78,15 @@ const Dashboard = () => {
             es.addEventListener('hosts_update', (event) => {
                 try {
                     const data = JSON.parse(event.data);
+
+                    // ⚡ Bolt: Convert array to O(1) lookup map to avoid O(N^2) complexity
+                    // when merging high-frequency SSE updates into React state.
+                    const dataMap = new Map(data.map(h => [h.id, h]));
+
                     setHosts(prev => {
                         if (prev.length === 0) return prev;
                         return prev.map(host => {
-                            const updated = data.find(h => h.id === host.id);
+                            const updated = dataMap.get(host.id);
                             return updated ? { ...host, ...updated } : host;
                         });
                     });
