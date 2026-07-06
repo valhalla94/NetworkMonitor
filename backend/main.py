@@ -40,9 +40,7 @@ ADMIN_PASSWORD_HASH = auth.get_password_hash(_admin_password_raw)
 # Rate limiter
 limiter = Limiter(key_func=get_remote_address)
 
-# DB init
-database.migrate_db()
-models.Base.metadata.create_all(bind=database.engine)
+# DB init (moved to startup_event to avoid immediate DB creation on import)
 
 app = FastAPI(title="Network Monitor API")
 app.state.limiter = limiter
@@ -109,6 +107,8 @@ async def login_for_access_token(
 
 @app.on_event("startup")
 def startup_event():
+    database.migrate_db()
+    models.Base.metadata.create_all(bind=database.engine)
     scheduler.start_scheduler()
     db = database.SessionLocal()
     try:
