@@ -132,12 +132,21 @@ def create_host(
 
 
 @app.get("/hosts/", response_model=List[models.Host])
-def read_hosts(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+def read_hosts(
+    skip: int = 0,
+    limit: int = 100,
+    db: Session = Depends(get_db),
+    current_user: auth.User = Depends(get_current_user),
+):
     return db.query(models.HostDB).offset(skip).limit(limit).all()
 
 
 @app.get("/hosts/{host_id}", response_model=models.Host)
-def read_host(host_id: int, db: Session = Depends(get_db)):
+def read_host(
+    host_id: int,
+    db: Session = Depends(get_db),
+    current_user: auth.User = Depends(get_current_user),
+):
     db_host = db.query(models.HostDB).filter(models.HostDB.id == host_id).first()
     if db_host is None:
         raise HTTPException(status_code=404, detail="Host not found")
