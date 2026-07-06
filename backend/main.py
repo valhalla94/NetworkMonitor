@@ -242,7 +242,10 @@ def get_metrics(host_id: int, range: str = "-1h", db: Session = Depends(get_db))
 
 @app.get("/uptime/{host_id}")
 def get_uptime_history(
-    host_id: int, range: str = "-30d", db: Session = Depends(get_db)
+    host_id: int,
+    range: str = "-30d",
+    db: Session = Depends(get_db),
+    current_user: auth.User = Depends(get_current_user),
 ):
     """Daily uptime percentage for the given host."""
     now = datetime.utcnow()
