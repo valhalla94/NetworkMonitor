@@ -322,6 +322,8 @@ const Dashboard = () => {
                             <h2 className="text-lg font-bold text-white">Internet Speed</h2>
                         </div>
                         <button onClick={handleRunSpeedTest} disabled={isSpeedTestRunning}
+                            aria-label={isSpeedTestRunning ? "Speed test running" : "Run speed test"}
+                            title={isSpeedTestRunning ? "Speed test running" : "Run speed test"}
                             className={`px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-all cursor-pointer ${isSpeedTestRunning ? 'bg-violet-500/10 text-violet-400' : 'bg-violet-600 hover:bg-violet-500 text-white'}`}>
                             {isSpeedTestRunning ? <><Loader2 className="w-3.5 h-3.5 animate-spin" />Running...</> : <><Play className="w-3.5 h-3.5 fill-current" />Run</>}
                         </button>
@@ -354,8 +356,11 @@ const Dashboard = () => {
                     <form onSubmit={handleQuickPing} className="flex gap-2 mb-4">
                         <input type="text" value={quickPingTarget} onChange={(e) => setQuickPingTarget(e.target.value)}
                             placeholder="IP or Hostname" disabled={quickPingLoading}
+                            aria-label="IP or Hostname for quick ping"
                             className="flex-1 bg-slate-800/50 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-amber-500 transition-colors disabled:opacity-50" />
                         <button type="submit" disabled={quickPingLoading || !quickPingTarget}
+                            aria-label="Run quick ping"
+                            title="Run quick ping"
                             className="bg-amber-600 hover:bg-amber-500 disabled:opacity-50 text-white px-3 py-2 rounded-lg transition-all flex items-center gap-1.5 font-medium cursor-pointer text-sm">
                             {quickPingLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4 fill-current" />}
                         </button>
@@ -402,6 +407,7 @@ const Dashboard = () => {
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                         placeholder="Search hosts by name, IP, or group..."
+                        aria-label="Search hosts"
                         className="w-full bg-slate-800/50 border border-slate-700 rounded-xl pl-9 pr-4 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500 transition-colors"
                     />
                 </div>
@@ -498,6 +504,8 @@ const Dashboard = () => {
                                     {showUptimeChart ? 'Latency' : 'Uptime'}
                                 </button>
                                 <button onClick={handleExportCSV}
+                                    aria-label="Export metrics to CSV"
+                                    title="Export metrics to CSV"
                                     className="px-3 py-1.5 rounded-lg text-xs font-medium text-slate-400 hover:text-white bg-slate-800/50 flex items-center gap-1.5 transition-all">
                                     <Download className="w-3.5 h-3.5" />CSV
                                 </button>
