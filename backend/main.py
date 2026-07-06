@@ -3,6 +3,7 @@ import re
 import json
 import asyncio
 import logging
+import secrets
 from fastapi import FastAPI, Depends, HTTPException, status, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
@@ -28,13 +29,18 @@ logger = logging.getLogger(__name__)
 
 # Hash admin password once at startup (bcrypt is slow — avoid rehashing per-request)
 _admin_password_raw = os.getenv("ADMIN_PASSWORD")
-if not _admin_password_raw:
-    logger.warning(
-        "⚠️  ADMIN_PASSWORD not set! Using default 'admin'. Set it before production use."
-    )
-    _admin_password_raw = "admin"
-elif _admin_password_raw in ("admin", "password", "123456", "test"):
-    logger.warning("⚠️  ADMIN_PASSWORD is too weak. Use a strong password.")
+if not _admin_password_raw or _admin_password_raw in ("admin", "password", "123456", "test"):
+    if not _admin_password_raw:
+        logger.warning("⚠️  ADMIN_PASSWORD not set!")
+    else:
+        logger.warning(f"⚠️  ADMIN_PASSWORD '{_admin_password_raw}' is too weak!")
+
+    _admin_password_raw = secrets.token_urlsafe(16)
+    print("\n" + "=" * 60)
+    print(f"🔑 GENERATED ADMIN PASSWORD: {_admin_password_raw}")
+    print("=" * 60 + "\n")
+    logger.info("✅ A secure random password has been generated and printed to the console.")
+
 ADMIN_PASSWORD_HASH = auth.get_password_hash(_admin_password_raw)
 
 # Rate limiter
