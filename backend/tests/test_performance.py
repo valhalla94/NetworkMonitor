@@ -2,10 +2,10 @@ import pytest
 import time
 import asyncio
 from httpx import AsyncClient, ASGITransport
-from main import app
 
 @pytest.mark.asyncio
-async def test_quick_ping_performance():
+async def test_quick_ping_performance(client):
+    from main import app
     from unittest.mock import patch
     import slowapi
 
