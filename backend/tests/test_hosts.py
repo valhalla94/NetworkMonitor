@@ -61,8 +61,8 @@ def test_quick_ping_valid_target_format(client):
     assert response.status_code == 200
 
 
-def test_network_status(client):
-    response = client.get("/status")
+def test_network_status(client, auth_headers):
+    response = client.get("/status", headers=auth_headers)
     assert response.status_code == 200
     assert "status" in response.json()
 
