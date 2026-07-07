@@ -322,8 +322,8 @@ const Dashboard = () => {
                             <h2 className="text-lg font-bold text-white">Internet Speed</h2>
                         </div>
                         <button onClick={handleRunSpeedTest} disabled={isSpeedTestRunning}
-                            className={`px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-all cursor-pointer ${isSpeedTestRunning ? 'bg-violet-500/10 text-violet-400' : 'bg-violet-600 hover:bg-violet-500 text-white'}`}>
-                            {isSpeedTestRunning ? <><Loader2 className="w-3.5 h-3.5 animate-spin" />Running...</> : <><Play className="w-3.5 h-3.5 fill-current" />Run</>}
+                            className={`px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-all cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-400 ${isSpeedTestRunning ? 'bg-violet-500/10 text-violet-400' : 'bg-violet-600 hover:bg-violet-500 text-white'}`}>
+                            {isSpeedTestRunning ? <><Loader2 className="w-3.5 h-3.5 animate-spin" aria-hidden="true" />Running...</> : <><Play className="w-3.5 h-3.5 fill-current" aria-hidden="true" />Run</>}
                         </button>
                     </div>
                     <div className="grid grid-cols-2 gap-4 mb-4">
@@ -354,10 +354,12 @@ const Dashboard = () => {
                     <form onSubmit={handleQuickPing} className="flex gap-2 mb-4">
                         <input type="text" value={quickPingTarget} onChange={(e) => setQuickPingTarget(e.target.value)}
                             placeholder="IP or Hostname" disabled={quickPingLoading}
-                            className="flex-1 bg-slate-800/50 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-amber-500 transition-colors disabled:opacity-50" />
+                            aria-label="Target IP or Hostname for quick ping"
+                            className="flex-1 bg-slate-800/50 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-amber-500 focus-visible:ring-1 focus-visible:ring-amber-500 transition-colors disabled:opacity-50" />
                         <button type="submit" disabled={quickPingLoading || !quickPingTarget}
-                            className="bg-amber-600 hover:bg-amber-500 disabled:opacity-50 text-white px-3 py-2 rounded-lg transition-all flex items-center gap-1.5 font-medium cursor-pointer text-sm">
-                            {quickPingLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4 fill-current" />}
+                            aria-label={quickPingLoading ? 'Pinging target...' : 'Run Quick Ping'}
+                            className="bg-amber-600 hover:bg-amber-500 disabled:opacity-50 text-white px-3 py-2 rounded-lg transition-all flex items-center justify-center gap-1.5 font-medium cursor-pointer text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 min-w-[2.5rem]">
+                            {quickPingLoading ? <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" /> : <Play className="w-4 h-4 fill-current" aria-hidden="true" />}
                         </button>
                     </form>
                     {quickPingResult && (
@@ -402,7 +404,8 @@ const Dashboard = () => {
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                         placeholder="Search hosts by name, IP, or group..."
-                        className="w-full bg-slate-800/50 border border-slate-700 rounded-xl pl-9 pr-4 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500 transition-colors"
+                        aria-label="Search hosts"
+                        className="w-full bg-slate-800/50 border border-slate-700 rounded-xl pl-9 pr-4 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500 focus-visible:ring-1 focus-visible:ring-blue-500 transition-colors"
                     />
                 </div>
                 <div className="flex items-center gap-2 bg-slate-900/50 p-1 rounded-xl border border-slate-700/50">
