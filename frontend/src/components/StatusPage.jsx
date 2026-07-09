@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { getHosts, getNetworkStatus } from '../api';
 import { Wifi, WifiOff, Server, CheckCircle, XCircle, AlertTriangle } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
@@ -25,12 +25,17 @@ const StatusPage = () => {
         return () => clearInterval(interval);
     }, []);
 
-    const groups = hosts.reduce((acc, host) => {
-        const group = host.group_name || 'General';
-        if (!acc[group]) acc[group] = [];
-        acc[group].push(host);
-        return acc;
-    }, {});
+    // ⚡ Bolt: Memoize expensive host list grouping.
+    // This prevents these O(n) array operations from running on every single render
+    // (e.g. when lastUpdated timestamp changes) reducing unnecessary re-computations.
+    const groups = useMemo(() => {
+        return hosts.reduce((acc, host) => {
+            const group = host.group_name || 'General';
+            if (!acc[group]) acc[group] = [];
+            acc[group].push(host);
+            return acc;
+        }, {});
+    }, [hosts]);
 
     const overallUp = networkStatus.status === 'UP';
 
