@@ -468,42 +468,12 @@ def _get_sse_data():
     db = database.SessionLocal()
     try:
         hosts = db.query(models.HostDB).filter(models.HostDB.enabled == True).all()
-        cutoff = datetime.utcnow() - timedelta(minutes=5)
 
-        host_ids = [h.id for h in hosts]
-        latest_pings = {}
-        if host_ids:
-            # ⚡ Bolt: Optimized fetching latest pings using a subquery and join
-            # This replaces fetching all results within the last 5 minutes and manually filtering in Python.
-            # It improves database fetch speed and reduces memory usage footprint.
-            latest_pings_subq = (
-                db.query(
-                    models.PingResultDB.host_id,
-                    func.max(models.PingResultDB.timestamp).label('max_timestamp')
-                )
-                .filter(
-                    models.PingResultDB.host_id.in_(host_ids),
-                    models.PingResultDB.timestamp >= cutoff
-                )
-                .group_by(models.PingResultDB.host_id)
-                .subquery()
-            )
-
-            latest_pings_query = (
-                db.query(models.PingResultDB)
-                .join(
-                    latest_pings_subq,
-                    (models.PingResultDB.host_id == latest_pings_subq.c.host_id) &
-                    (models.PingResultDB.timestamp == latest_pings_subq.c.max_timestamp)
-                )
-            )
-
-            latest_pings_list = latest_pings_query.all()
-            latest_pings = {p.host_id: p for p in latest_pings_list}
-
+        # ⚡ Bolt: Removed unused latest_pings database query.
+        # The query was executing every 5 seconds per SSE stream, but its results
+        # were never used in the returned host_list, saving significant DB I/O.
         host_list = []
         for h in hosts:
-            last_ping = latest_pings.get(h.id)
             host_list.append(
                 {
                     "id": h.id,

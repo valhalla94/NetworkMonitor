@@ -21,3 +21,7 @@
 ## 2024-07-05 - Optimize state merges from high-frequency SSE updates
 **Learning:** Found a performance bottleneck in `Dashboard.jsx` where the `hosts_update` SSE event merged incoming updates into the React state array using `.map()` combined with `.find()`. This resulted in an O(n^2) operation on the main UI thread during every update event (which occurs frequently), causing blocking and lag on lower-end devices with many hosts.
 **Action:** When merging arrays of updates into existing React state arrays, construct an O(1) `Map` or dictionary for lookups first. Iterating through the state array and retrieving the updated value via a Map `get()` operation reduces the time complexity from O(n^2) to O(n), preventing UI thread starvation.
+
+## 2026-07-10 - Remove unused DB query in SSE loop
+**Learning:** Found a performance bottleneck where a database query fetching latest pings was executed in the `_get_sse_data()` function on every SSE loop tick (every 5 seconds) but the results were completely unused when constructing the host list.
+**Action:** Ensure database queries in high-frequency execution paths (like SSE loops) are strictly necessary and actively consumed. Removing dead queries avoids significant unnecessary overhead.
