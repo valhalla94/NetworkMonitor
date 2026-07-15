@@ -25,3 +25,7 @@
 ## 2025-01-22 - Optimize SSE Database Reads
 **Learning:** Found a performance bottleneck where the `_get_sse_data()` function was calculating the latest ping for each host on every execution of the 5-second interval loop, but this data was completely dead/unused in the emitted JSON payload. This resulted in significant CPU and Database I/O overhead.
 **Action:** Ensure that database queries inside high-frequency execution paths (like SSE loops or polling endpoints) are strictly necessary and that their output is actively consumed. Removing dead or unused queries prevents significant unnecessary CPU and database I/O overhead.
+
+## 2025-01-22 - Optimize React List Rendering with React.memo
+**Learning:** Found a performance bottleneck where long lists of components would re-render entirely whenever the parent component's state changed, because inline arrow functions (e.g., `onClick={() => set(val)}`) were passed as props. Inline functions create new references on every render, which breaks `React.memo`'s shallow equality checks.
+**Action:** When optimizing React components with `React.memo` to prevent unnecessary re-renders of items in a list, avoid passing inline arrow functions as props from the parent. Instead, pass stable references (like raw state setter functions or `useCallback` hooks) and handle the specific logic/arguments inside the memoized child component.
