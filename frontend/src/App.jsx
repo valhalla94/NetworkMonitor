@@ -26,9 +26,9 @@ function App() {
           <header className="border-b border-slate-800 bg-slate-900/50 backdrop-blur-lg sticky top-0 z-50">
             <div className="max-w-7xl mx-auto px-4 md:px-8 py-4">
               <div className="flex items-center justify-between gap-4">
-                <Link to="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity min-w-0">
+                <Link to="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity min-w-0 rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-4 focus-visible:ring-offset-slate-900">
                   <div className="bg-gradient-to-br from-blue-600 to-blue-500 p-2.5 md:p-3 rounded-xl shadow-lg shadow-blue-900/30 flex-shrink-0">
-                    <LayoutDashboard className="text-white w-5 h-5 md:w-7 md:h-7" />
+                    <LayoutDashboard className="text-white w-5 h-5 md:w-7 md:h-7" aria-hidden="true" />
                   </div>
                   <h1 className="text-2xl md:text-4xl font-bold bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent truncate">
                     Network Monitor
@@ -36,20 +36,21 @@ function App() {
                 </Link>
                 <div className="flex items-center gap-2 flex-shrink-0">
                   <Link to="/status"
-                    className="px-3 md:px-4 py-2 rounded-xl font-medium text-slate-400 hover:text-white hover:bg-slate-800/50 transition-all flex items-center gap-1.5 text-sm">
-                    <Activity className="w-4 h-4" />
+                    className="px-3 md:px-4 py-2 rounded-xl font-medium text-slate-400 hover:text-white hover:bg-slate-800/50 transition-all flex items-center gap-1.5 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500">
+                    <Activity className="w-4 h-4" aria-hidden="true" />
                     <span className="hidden sm:inline">Status</span>
                   </Link>
                   <button
                     onClick={() => setDark(d => !d)}
-                    className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800/50 transition-all"
+                    className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800/50 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
                     title={dark ? 'Switch to light mode' : 'Switch to dark mode'}
+                    aria-label={dark ? 'Switch to light mode' : 'Switch to dark mode'}
                   >
-                    {dark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+                    {dark ? <Sun className="w-5 h-5" aria-hidden="true" /> : <Moon className="w-5 h-5" aria-hidden="true" />}
                   </button>
                   <Link to="/settings"
-                    className="glass-button px-4 md:px-6 py-2 md:py-2.5 rounded-xl font-medium flex items-center gap-2 text-sm">
-                    <Settings className="w-4 h-4 md:w-5 md:h-5" />
+                    className="glass-button px-4 md:px-6 py-2 md:py-2.5 rounded-xl font-medium flex items-center gap-2 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500">
+                    <Settings className="w-4 h-4 md:w-5 md:h-5" aria-hidden="true" />
                     <span className="hidden sm:inline">Settings</span>
                   </Link>
                 </div>
