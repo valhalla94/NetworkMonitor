@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import HostManager from './HostManager';
-import { Lock, ArrowLeft, Eye, EyeOff, Bell, Save } from 'lucide-react';
+import { Lock, ArrowLeft, Eye, EyeOff, Bell, Save, Loader2 } from 'lucide-react';
 import { getHosts, login, updateNotificationSettings, getSettings } from '../api';
 
 const SettingsPage = () => {
@@ -12,6 +12,7 @@ const SettingsPage = () => {
     const [hosts, setHosts] = useState([]);
     const [notificationUrl, setNotificationUrl] = useState('');
     const [notificationMsg, setNotificationMsg] = useState('');
+    const [isLoggingIn, setIsLoggingIn] = useState(false);
     const navigate = useNavigate();
 
     const fetchHosts = async () => {
@@ -62,6 +63,7 @@ const SettingsPage = () => {
 
     const handleLogin = async (e) => {
         e.preventDefault();
+        setIsLoggingIn(true);
         try {
             const response = await login('admin', password);
             sessionStorage.setItem('token', response.data.access_token);
@@ -71,6 +73,8 @@ const SettingsPage = () => {
         } catch {
             setError('Incorrect password');
             setPassword('');
+        } finally {
+            setIsLoggingIn(false);
         }
     };
 
@@ -121,9 +125,9 @@ const SettingsPage = () => {
                         </div>
 
                         <div className="space-y-3">
-                            <button type="submit" className="glass-button w-full py-3 rounded-xl font-bold text-lg flex items-center justify-center gap-2">
-                                <Lock className="w-5 h-5" />
-                                Unlock Settings
+                            <button type="submit" disabled={isLoggingIn} className={`glass-button w-full py-3 rounded-xl font-bold text-lg flex items-center justify-center gap-2 ${isLoggingIn ? 'opacity-50 cursor-not-allowed' : ''}`}>
+                                {isLoggingIn ? <Loader2 className="w-5 h-5 animate-spin" aria-hidden="true" /> : <Lock className="w-5 h-5" aria-hidden="true" />}
+                                {isLoggingIn ? 'Unlocking...' : 'Unlock Settings'}
                             </button>
                             <button
                                 type="button"
