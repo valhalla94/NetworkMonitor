@@ -316,7 +316,11 @@ def get_network_status(db: Session = Depends(get_db)):
             .subquery()
         )
 
-        latest_pings_query = db.query(models.PingResultDB).join(
+        # ⚡ Bolt: Fetch only required columns to reduce DB payload and memory usage.
+        latest_pings_query = db.query(
+            models.PingResultDB.host_id,
+            models.PingResultDB.latency
+        ).join(
             latest_pings_subq,
             (models.PingResultDB.host_id == latest_pings_subq.c.host_id)
             & (models.PingResultDB.timestamp == latest_pings_subq.c.max_timestamp),

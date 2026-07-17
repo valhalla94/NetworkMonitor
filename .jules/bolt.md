@@ -25,3 +25,7 @@
 ## 2025-01-22 - Optimize SSE Database Reads
 **Learning:** Found a performance bottleneck where the `_get_sse_data()` function was calculating the latest ping for each host on every execution of the 5-second interval loop, but this data was completely dead/unused in the emitted JSON payload. This resulted in significant CPU and Database I/O overhead.
 **Action:** Ensure that database queries inside high-frequency execution paths (like SSE loops or polling endpoints) are strictly necessary and that their output is actively consumed. Removing dead or unused queries prevents significant unnecessary CPU and database I/O overhead.
+
+## 2025-01-22 - Optimize Fetching Latest Pings for Status Endpoint
+**Learning:** Found a performance bottleneck where the application fetches large amounts of metrics data via the `/status` endpoint. SQLAlchemy was querying for entire `PingResultDB` objects and passing them back to python for processing just to extract `latency`. By unpacking only the `host_id` and `latency` fields from the query natively, performance in processing status updates improved and reduced memory parsing payload.
+**Action:** Always prefer selecting specific columns over full models when records are fetched in SQLAlchemy to decrease database transfer and parsing overhead.
