@@ -433,8 +433,9 @@ const Dashboard = () => {
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                         {groups[groupName].map(host => (
-                            <div key={host.id} onClick={() => setSelectedHost(host)}
-                                className={`glass-panel p-5 rounded-2xl cursor-pointer transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl group relative overflow-hidden ${selectedHost?.id === host.id ? 'ring-2 ring-blue-500/50 bg-slate-800/60' : 'hover:bg-slate-800/60'}`}>
+                            <button key={host.id} onClick={() => setSelectedHost(host)}
+                                aria-label={`Select host ${host.name}`}
+                                className={`w-full text-left glass-panel p-5 rounded-2xl cursor-pointer transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl group relative overflow-hidden focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${selectedHost?.id === host.id ? 'ring-2 ring-blue-500/50 bg-slate-800/60' : 'hover:bg-slate-800/60'}`}>
                                 {host.maintenance && (
                                     <div className="absolute top-0 right-0 bg-amber-500/90 text-slate-900 text-[10px] font-bold px-4 py-1 rotate-45 translate-x-3 translate-y-2 shadow-lg z-10 w-24 text-center">MAINT</div>
                                 )}
@@ -460,7 +461,7 @@ const Dashboard = () => {
                                     </div>
                                     <div className={`w-3 h-3 rounded-full flex-shrink-0 shadow-lg ${host.maintenance ? 'bg-amber-400' : host.last_status === 'UP' ? 'bg-emerald-400 shadow-emerald-400/50' : host.last_status === 'DOWN' ? 'bg-rose-400 shadow-rose-400/50' : 'bg-slate-400'}`} />
                                 </div>
-                            </div>
+                            </button>
                         ))}
                     </div>
                 </div>
