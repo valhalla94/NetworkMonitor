@@ -416,6 +416,8 @@ const Dashboard = () => {
                         { label: 'Maint.', value: 'maintenance' },
                     ].map(opt => (
                         <button key={opt.value} onClick={() => setStatusFilter(opt.value)}
+                            aria-label={`Filter by ${opt.label} status`}
+                            aria-pressed={statusFilter === opt.value}
                             className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${statusFilter === opt.value ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}>
                             {opt.label}
                         </button>
@@ -497,6 +499,8 @@ const Dashboard = () => {
                             </div>
                             <div className="flex items-center gap-2 flex-wrap">
                                 <button onClick={() => setShowUptimeChart(!showUptimeChart)}
+                                    aria-label="Toggle between latency and uptime chart"
+                                    aria-pressed={showUptimeChart}
                                     className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${showUptimeChart ? 'bg-emerald-600 text-white' : 'text-slate-400 hover:text-white bg-slate-800/50'}`}>
                                     {showUptimeChart ? 'Latency' : 'Uptime'}
                                 </button>
@@ -507,6 +511,8 @@ const Dashboard = () => {
                                 <div className="flex items-center gap-1 bg-slate-900/50 p-1 rounded-xl border border-slate-700/50">
                                     {['-1h', '-6h', '-24h', '-7d', '-30d', '-1y', '-2y'].map(v => (
                                         <button key={v} onClick={() => setTimeRange(v)}
+                                            aria-label={`Show data for last ${v.replace('-', '')}`}
+                                            aria-pressed={timeRange === v}
                                             className={`px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all ${timeRange === v ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}>
                                             {v.replace('-', '').toUpperCase()}
                                         </button>
