@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import HostManager from './HostManager';
-import { Lock, ArrowLeft, Eye, EyeOff, Bell, Save } from 'lucide-react';
+import { Lock, ArrowLeft, Eye, EyeOff, Bell, Save, Loader2 } from 'lucide-react';
 import { getHosts, login, updateNotificationSettings, getSettings } from '../api';
 
 const SettingsPage = () => {
@@ -12,6 +12,8 @@ const SettingsPage = () => {
     const [hosts, setHosts] = useState([]);
     const [notificationUrl, setNotificationUrl] = useState('');
     const [notificationMsg, setNotificationMsg] = useState('');
+    const [isAuthenticating, setIsAuthenticating] = useState(false);
+    const [isSaving, setIsSaving] = useState(false);
     const navigate = useNavigate();
 
     const fetchHosts = async () => {
@@ -51,17 +53,21 @@ const SettingsPage = () => {
 
     const handleSaveNotification = async (e) => {
         e.preventDefault();
+        setIsSaving(true);
         try {
             await updateNotificationSettings(notificationUrl);
             setNotificationMsg('Settings saved and test notification sent!');
             setTimeout(() => setNotificationMsg(''), 5000);
         } catch {
             setNotificationMsg('Error saving settings.');
+        } finally {
+            setIsSaving(false);
         }
     };
 
     const handleLogin = async (e) => {
         e.preventDefault();
+        setIsAuthenticating(true);
         try {
             const response = await login('admin', password);
             sessionStorage.setItem('token', response.data.access_token);
@@ -71,6 +77,8 @@ const SettingsPage = () => {
         } catch {
             setError('Incorrect password');
             setPassword('');
+        } finally {
+            setIsAuthenticating(false);
         }
     };
 
@@ -121,9 +129,9 @@ const SettingsPage = () => {
                         </div>
 
                         <div className="space-y-3">
-                            <button type="submit" className="glass-button w-full py-3 rounded-xl font-bold text-lg flex items-center justify-center gap-2">
-                                <Lock className="w-5 h-5" />
-                                Unlock Settings
+                            <button type="submit" disabled={isAuthenticating} className="glass-button w-full py-3 rounded-xl font-bold text-lg flex items-center justify-center gap-2 disabled:opacity-70 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500">
+                                {isAuthenticating ? <Loader2 className="w-5 h-5 animate-spin" aria-hidden="true" /> : <Lock className="w-5 h-5" aria-hidden="true" />}
+                                {isAuthenticating ? 'Unlocking...' : 'Unlock Settings'}
                             </button>
                             <button
                                 type="button"
@@ -185,9 +193,9 @@ const SettingsPage = () => {
                                 />
                             </div>
                             <div className="flex items-end">
-                                <button type="submit" className="glass-button px-6 py-2.5 rounded-xl font-bold text-lg flex items-center gap-2">
-                                    <Save className="w-5 h-5" />
-                                    Save & Test
+                                <button type="submit" disabled={isSaving} className="glass-button px-6 py-2.5 rounded-xl font-bold text-lg flex items-center gap-2 disabled:opacity-70 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500">
+                                    {isSaving ? <Loader2 className="w-5 h-5 animate-spin" aria-hidden="true" /> : <Save className="w-5 h-5" aria-hidden="true" />}
+                                    {isSaving ? 'Saving...' : 'Save & Test'}
                                 </button>
                             </div>
                         </form>
