@@ -25,3 +25,7 @@
 ## 2025-01-22 - Optimize SSE Database Reads
 **Learning:** Found a performance bottleneck where the `_get_sse_data()` function was calculating the latest ping for each host on every execution of the 5-second interval loop, but this data was completely dead/unused in the emitted JSON payload. This resulted in significant CPU and Database I/O overhead.
 **Action:** Ensure that database queries inside high-frequency execution paths (like SSE loops or polling endpoints) are strictly necessary and that their output is actively consumed. Removing dead or unused queries prevents significant unnecessary CPU and database I/O overhead.
+
+## $(date +%Y-%m-%d) - Optimize High-Frequency State Updates and List Rendering
+**Learning:** Found a performance bottleneck where high-frequency SSE updates were causing a large list of host components in the React dashboard to re-render constantly. The SSE event listener in `Dashboard.jsx` was unconditionally spreading the incoming payload into a new object reference (`{ ...host, ...updated }`) for every item, even when no properties had changed. This churn broke shallow equality checks.
+**Action:** When processing high-frequency background updates (like SSE data) in React, perform a shallow comparison of the incoming data against the existing state item. Only create a new object reference if properties actually changed; otherwise, return the original reference. Combine this with extracting list items into smaller components wrapped in `React.memo()` to effectively prevent unnecessary re-renders.
