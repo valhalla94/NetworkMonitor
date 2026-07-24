@@ -416,7 +416,8 @@ const Dashboard = () => {
                         { label: 'Maint.', value: 'maintenance' },
                     ].map(opt => (
                         <button key={opt.value} onClick={() => setStatusFilter(opt.value)}
-                            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${statusFilter === opt.value ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}>
+                            aria-pressed={statusFilter === opt.value}
+                            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${statusFilter === opt.value ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}>
                             {opt.label}
                         </button>
                     ))}
@@ -497,17 +498,20 @@ const Dashboard = () => {
                             </div>
                             <div className="flex items-center gap-2 flex-wrap">
                                 <button onClick={() => setShowUptimeChart(!showUptimeChart)}
-                                    className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${showUptimeChart ? 'bg-emerald-600 text-white' : 'text-slate-400 hover:text-white bg-slate-800/50'}`}>
+                                    aria-pressed={showUptimeChart}
+                                    className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 ${showUptimeChart ? 'bg-emerald-600 text-white' : 'text-slate-400 hover:text-white bg-slate-800/50'}`}>
                                     {showUptimeChart ? 'Latency' : 'Uptime'}
                                 </button>
                                 <button onClick={handleExportCSV}
-                                    className="px-3 py-1.5 rounded-lg text-xs font-medium text-slate-400 hover:text-white bg-slate-800/50 flex items-center gap-1.5 transition-all">
-                                    <Download className="w-3.5 h-3.5" />CSV
+                                    className="px-3 py-1.5 rounded-lg text-xs font-medium text-slate-400 hover:text-white bg-slate-800/50 flex items-center gap-1.5 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400">
+                                    <Download className="w-3.5 h-3.5" aria-hidden="true" />CSV
                                 </button>
                                 <div className="flex items-center gap-1 bg-slate-900/50 p-1 rounded-xl border border-slate-700/50">
                                     {['-1h', '-6h', '-24h', '-7d', '-30d', '-1y', '-2y'].map(v => (
                                         <button key={v} onClick={() => setTimeRange(v)}
-                                            className={`px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all ${timeRange === v ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}>
+                                            aria-label={`Time range: ${v.replace('-', '').toUpperCase()}`}
+                                            aria-pressed={timeRange === v}
+                                            className={`px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${timeRange === v ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}>
                                             {v.replace('-', '').toUpperCase()}
                                         </button>
                                     ))}

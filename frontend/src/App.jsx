@@ -42,10 +42,11 @@ function App() {
                   </Link>
                   <button
                     onClick={() => setDark(d => !d)}
-                    className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800/50 transition-all"
+                    className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800/50 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
                     title={dark ? 'Switch to light mode' : 'Switch to dark mode'}
+                    aria-label={dark ? 'Switch to light mode' : 'Switch to dark mode'}
                   >
-                    {dark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+                    {dark ? <Sun className="w-5 h-5" aria-hidden="true" /> : <Moon className="w-5 h-5" aria-hidden="true" />}
                   </button>
                   <Link to="/settings"
                     className="glass-button px-4 md:px-6 py-2 md:py-2.5 rounded-xl font-medium flex items-center gap-2 text-sm">
