@@ -416,7 +416,8 @@ const Dashboard = () => {
                         { label: 'Maint.', value: 'maintenance' },
                     ].map(opt => (
                         <button key={opt.value} onClick={() => setStatusFilter(opt.value)}
-                            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${statusFilter === opt.value ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}>
+                            aria-pressed={statusFilter === opt.value}
+                            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${statusFilter === opt.value ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}>
                             {opt.label}
                         </button>
                     ))}
@@ -433,8 +434,9 @@ const Dashboard = () => {
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                         {groups[groupName].map(host => (
-                            <div key={host.id} onClick={() => setSelectedHost(host)}
-                                className={`glass-panel p-5 rounded-2xl cursor-pointer transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl group relative overflow-hidden ${selectedHost?.id === host.id ? 'ring-2 ring-blue-500/50 bg-slate-800/60' : 'hover:bg-slate-800/60'}`}>
+                            <button key={host.id} onClick={() => setSelectedHost(host)}
+                                aria-pressed={selectedHost?.id === host.id}
+                                className={`w-full text-left glass-panel p-5 rounded-2xl cursor-pointer transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl group relative overflow-hidden focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${selectedHost?.id === host.id ? 'ring-2 ring-blue-500/50 bg-slate-800/60' : 'hover:bg-slate-800/60'}`}>
                                 {host.maintenance && (
                                     <div className="absolute top-0 right-0 bg-amber-500/90 text-slate-900 text-[10px] font-bold px-4 py-1 rotate-45 translate-x-3 translate-y-2 shadow-lg z-10 w-24 text-center">MAINT</div>
                                 )}
@@ -460,7 +462,7 @@ const Dashboard = () => {
                                     </div>
                                     <div className={`w-3 h-3 rounded-full flex-shrink-0 shadow-lg ${host.maintenance ? 'bg-amber-400' : host.last_status === 'UP' ? 'bg-emerald-400 shadow-emerald-400/50' : host.last_status === 'DOWN' ? 'bg-rose-400 shadow-rose-400/50' : 'bg-slate-400'}`} />
                                 </div>
-                            </div>
+                            </button>
                         ))}
                     </div>
                 </div>
@@ -497,17 +499,19 @@ const Dashboard = () => {
                             </div>
                             <div className="flex items-center gap-2 flex-wrap">
                                 <button onClick={() => setShowUptimeChart(!showUptimeChart)}
-                                    className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${showUptimeChart ? 'bg-emerald-600 text-white' : 'text-slate-400 hover:text-white bg-slate-800/50'}`}>
+                                    aria-pressed={showUptimeChart}
+                                    className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 ${showUptimeChart ? 'bg-emerald-600 text-white' : 'text-slate-400 hover:text-white bg-slate-800/50'}`}>
                                     {showUptimeChart ? 'Latency' : 'Uptime'}
                                 </button>
                                 <button onClick={handleExportCSV}
-                                    className="px-3 py-1.5 rounded-lg text-xs font-medium text-slate-400 hover:text-white bg-slate-800/50 flex items-center gap-1.5 transition-all">
+                                    className="px-3 py-1.5 rounded-lg text-xs font-medium text-slate-400 hover:text-white bg-slate-800/50 flex items-center gap-1.5 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500">
                                     <Download className="w-3.5 h-3.5" />CSV
                                 </button>
                                 <div className="flex items-center gap-1 bg-slate-900/50 p-1 rounded-xl border border-slate-700/50">
                                     {['-1h', '-6h', '-24h', '-7d', '-30d', '-1y', '-2y'].map(v => (
                                         <button key={v} onClick={() => setTimeRange(v)}
-                                            className={`px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all ${timeRange === v ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}>
+                                            aria-pressed={timeRange === v}
+                                            className={`px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${timeRange === v ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}>
                                             {v.replace('-', '').toUpperCase()}
                                         </button>
                                     ))}
