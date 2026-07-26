@@ -71,8 +71,14 @@ def is_valid_typedef(typedef: str) -> bool:
 
 
 def _add_column_if_missing(db, table: str, col: str, typedef: str):
-    if not is_valid_identifier(table) or not is_valid_identifier(col) or not is_valid_typedef(typedef):
-        logger.error(f"Invalid identifier or typedef: table='{table}', col='{col}', typedef='{typedef}'")
+    if (
+        not is_valid_identifier(table)
+        or not is_valid_identifier(col)
+        or not is_valid_typedef(typedef)
+    ):
+        logger.error(
+            f"Invalid identifier or typedef: table='{table}', col='{col}', typedef='{typedef}'"
+        )
         return
 
     try:
