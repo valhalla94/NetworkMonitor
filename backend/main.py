@@ -282,7 +282,9 @@ def get_uptime_history(
 
 
 @app.get("/status")
-def get_network_status(db: Session = Depends(get_db)):
+def get_network_status(
+    db: Session = Depends(get_db), current_user: auth.User = Depends(get_current_user)
+):
     hosts = db.query(models.HostDB).filter(models.HostDB.enabled == True).all()
     cutoff = datetime.utcnow() - timedelta(minutes=5)
 
