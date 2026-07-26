@@ -17,3 +17,7 @@
 ## 2025-01-22 - Optimize Database Reads with Composite Index
 **Learning:** Found a performance bottleneck where querying `PingResultDB` by `host_id` and filtering/ordering by `timestamp` was slow for large datasets because it lacked a composite index. Separate indices on `host_id` and `timestamp` exist, but SQLite usually uses only one index per query, falling back to a sequential scan for the other.
 **Action:** Add a composite index on frequently paired query fields `(host_id, timestamp)` in SQLAlchemy using `Index('ix_name', 'col1', 'col2')` to significantly speed up range and exact-match queries that depend on both columns.
+
+## 2025-02-09 - Remove Unused Database Queries in High-Frequency Loops
+**Learning:** Found a performance bottleneck where an expensive subquery (fetching the latest ping per host) was being executed every 5 seconds inside the `_get_sse_data()` helper, but the resulting data (`latest_pings`) was completely unused when constructing the Server-Sent Events (SSE) payload.
+**Action:** Always verify if fetched data is actually consumed by the application logic, especially inside high-frequency execution paths like SSE generators or polling loops. Removing dead queries saves considerable CPU and database I/O resources.

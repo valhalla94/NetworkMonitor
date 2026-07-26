@@ -2,6 +2,7 @@ import pytest
 from unittest.mock import Mock, patch
 from notifications import NotificationManager
 
+
 def test_load_config_with_valid_setting():
     manager = NotificationManager()
     manager.apobj = Mock()
@@ -17,6 +18,7 @@ def test_load_config_with_valid_setting():
     manager.apobj.clear.assert_called_once()
     manager.apobj.add.assert_called_once_with("mailto://test:test@example.com")
 
+
 def test_load_config_without_setting():
     manager = NotificationManager()
     manager.apobj = Mock()
@@ -29,6 +31,7 @@ def test_load_config_without_setting():
     manager.apobj.clear.assert_called_once()
     manager.apobj.add.assert_not_called()
 
+
 def test_load_config_exception():
     manager = NotificationManager()
     manager.apobj = Mock()
@@ -39,6 +42,7 @@ def test_load_config_exception():
     # Should not raise exception
     manager.load_config(db_session)
 
+
 def test_send_notification_not_configured():
     manager = NotificationManager()
     # Set apobj to None or False-y value to trigger the not configured check properly
@@ -46,6 +50,7 @@ def test_send_notification_not_configured():
 
     manager.send_notification("Test Title", "Test Body")
     # if it's None we don't have notify to check, but we know it returned early
+
 
 def test_send_notification_success():
     manager = NotificationManager()
@@ -55,6 +60,7 @@ def test_send_notification_success():
     manager.send_notification("Test Title", "Test Body")
     manager.apobj.notify.assert_called_once_with(title="Test Title", body="Test Body")
 
+
 def test_send_notification_failure():
     manager = NotificationManager()
     manager.apobj = Mock()
@@ -62,6 +68,7 @@ def test_send_notification_failure():
 
     manager.send_notification("Test Title", "Test Body")
     manager.apobj.notify.assert_called_once_with(title="Test Title", body="Test Body")
+
 
 def test_send_notification_exception():
     manager = NotificationManager()
