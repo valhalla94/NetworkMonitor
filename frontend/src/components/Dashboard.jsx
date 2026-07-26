@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { getHosts, getMetrics, getNetworkStatus, getPublicIpHistory, getSpeedTestHistory, runSpeedTest, quickPing, getUptimeHistory } from '../api';
-import { Activity, Server, Wifi, WifiOff, Clock, Globe, History, Timer, Gauge, ArrowDown, ArrowUp, Play, Loader2, Search, Zap, Lock, Folder, Filter, Download } from 'lucide-react';
+import { Activity, Server, Wifi, WifiOff, Clock, Globe, History, Timer, Gauge, ArrowDown, ArrowUp, Play, Loader2, Search, Zap, Lock, Folder, Filter, Download, X } from 'lucide-react';
 import { format, formatDistanceToNow } from 'date-fns';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
@@ -446,8 +446,18 @@ const Dashboard = () => {
                         onChange={(e) => setSearchQuery(e.target.value)}
                         placeholder="Search hosts by name, IP, or group..."
                         aria-label="Search hosts"
-                        className="w-full bg-slate-800/50 border border-slate-700 rounded-xl pl-9 pr-4 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500 focus-visible:ring-1 focus-visible:ring-blue-500 transition-colors"
+                        className="w-full bg-slate-800/50 border border-slate-700 rounded-xl pl-9 pr-10 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500 focus-visible:ring-1 focus-visible:ring-blue-500 transition-colors"
                     />
+                    {searchQuery && (
+                        <button
+                            type="button"
+                            onClick={() => setSearchQuery('')}
+                            aria-label="Clear search"
+                            className="absolute right-3 top-2.5 text-slate-500 hover:text-slate-300 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded p-0.5"
+                        >
+                            <X className="w-4 h-4" />
+                        </button>
+                    )}
                 </div>
                 <div className="flex items-center gap-2 bg-slate-900/50 p-1 rounded-xl border border-slate-700/50" role="group" aria-label="Status filters">
                     {[
