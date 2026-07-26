@@ -3,8 +3,9 @@ import time
 import asyncio
 from httpx import AsyncClient, ASGITransport
 
+
 @pytest.mark.asyncio
-async def test_quick_ping_performance(client):
+async def test_quick_ping_performance():
     from main import app
     from unittest.mock import patch
     import slowapi
@@ -15,14 +16,19 @@ async def test_quick_ping_performance(client):
     def fake_limit(*args, **kwargs):
         return original_limit("1000/minute")
 
-    with patch("main.ping") as mock_ping, patch.object(limiter, 'limit', side_effect=fake_limit):
+    with patch("main.ping") as mock_ping, patch.object(
+        limiter, "limit", side_effect=fake_limit
+    ):
+
         def slow_ping(*args, **kwargs):
             time.sleep(0.5)
             return 10.0
 
         mock_ping.side_effect = slow_ping
 
-        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
+        async with AsyncClient(
+            transport=ASGITransport(app=app), base_url="http://test"
+        ) as ac:
             start_time = time.perf_counter()
 
             # Send 5 concurrent requests, using different IPs or skipping rate limit

@@ -3,6 +3,7 @@ import re
 import json
 import asyncio
 import logging
+import secrets
 from fastapi import FastAPI, Depends, HTTPException, status, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
@@ -29,10 +30,11 @@ logger = logging.getLogger(__name__)
 # Hash admin password once at startup (bcrypt is slow — avoid rehashing per-request)
 _admin_password_raw = os.getenv("ADMIN_PASSWORD")
 if not _admin_password_raw:
+    _admin_password_raw = secrets.token_urlsafe(16)
     logger.warning(
-        "⚠️  ADMIN_PASSWORD not set! Using default 'admin'. Set it before production use."
+        f"⚠️  ADMIN_PASSWORD not set! Generated random admin password: {_admin_password_raw}\n"
+        "Please set the ADMIN_PASSWORD environment variable before production use."
     )
-    _admin_password_raw = "admin"
 elif _admin_password_raw in ("admin", "password", "123456", "test"):
     logger.warning("⚠️  ADMIN_PASSWORD is too weak. Use a strong password.")
 ADMIN_PASSWORD_HASH = auth.get_password_hash(_admin_password_raw)
@@ -40,9 +42,7 @@ ADMIN_PASSWORD_HASH = auth.get_password_hash(_admin_password_raw)
 # Rate limiter
 limiter = Limiter(key_func=get_remote_address)
 
-# DB init
-database.migrate_db()
-models.Base.metadata.create_all(bind=database.engine)
+# DB init (moved to startup_event to avoid immediate DB creation on import)
 
 app = FastAPI(title="Network Monitor API")
 app.state.limiter = limiter
@@ -109,6 +109,8 @@ async def login_for_access_token(
 
 @app.on_event("startup")
 def startup_event():
+    database.migrate_db()
+    models.Base.metadata.create_all(bind=database.engine)
     scheduler.start_scheduler()
     db = database.SessionLocal()
     try:
@@ -132,12 +134,21 @@ def create_host(
 
 
 @app.get("/hosts/", response_model=List[models.Host])
-def read_hosts(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+def read_hosts(
+    skip: int = 0,
+    limit: int = 100,
+    db: Session = Depends(get_db),
+    current_user: auth.User = Depends(get_current_user),
+):
     return db.query(models.HostDB).offset(skip).limit(limit).all()
 
 
 @app.get("/hosts/{host_id}", response_model=models.Host)
-def read_host(host_id: int, db: Session = Depends(get_db)):
+def read_host(
+    host_id: int,
+    db: Session = Depends(get_db),
+    current_user: auth.User = Depends(get_current_user),
+):
     db_host = db.query(models.HostDB).filter(models.HostDB.id == host_id).first()
     if db_host is None:
         raise HTTPException(status_code=404, detail="Host not found")
@@ -235,9 +246,7 @@ def get_metrics(
         if latency_val >= 0:
             successful_pings += 1
             total_latency += latency_val
-        results.append(
-            {"time": timestamp.isoformat() + "Z", "latency": latency_val}
-        )
+        results.append({"time": timestamp.isoformat() + "Z", "latency": latency_val})
 
     uptime = (successful_pings / total_pings * 100) if total_pings > 0 else 0
     avg_latency = (total_latency / successful_pings) if successful_pings > 0 else 0
@@ -269,7 +278,7 @@ def get_uptime_history(
         db.query(
             func.strftime("%Y-%m-%d", models.PingResultDB.timestamp).label("day_key"),
             func.count(models.PingResultDB.id).label("total"),
-            func.sum(case((models.PingResultDB.latency >= 0, 1), else_=0)).label("up")
+            func.sum(case((models.PingResultDB.latency >= 0, 1), else_=0)).label("up"),
         )
         .filter(
             models.PingResultDB.host_id == host_id,
@@ -300,31 +309,32 @@ def get_network_status(db: Session = Depends(get_db)):
     if host_ids:
         # ⚡ Bolt: Optimized fetching latest pings using a subquery and join
         # This replaces fetching all results within the last 5 minutes and manually filtering in Python.
-        # It improves database fetch speed and reduces memory usage footprint.
+        # Also fetching specific columns (`host_id`, `latency`) rather than full `PingResultDB` objects
+        # further improves fetch speed and drops object parsing footprint memory overhead.
         latest_pings_subq = (
             db.query(
                 models.PingResultDB.host_id,
-                func.max(models.PingResultDB.timestamp).label('max_timestamp')
+                func.max(models.PingResultDB.timestamp).label("max_timestamp"),
             )
             .filter(
                 models.PingResultDB.host_id.in_(host_ids),
-                models.PingResultDB.timestamp >= cutoff
+                models.PingResultDB.timestamp >= cutoff,
             )
             .group_by(models.PingResultDB.host_id)
             .subquery()
         )
 
-        latest_pings_query = (
-            db.query(models.PingResultDB)
-            .join(
-                latest_pings_subq,
-                (models.PingResultDB.host_id == latest_pings_subq.c.host_id) &
-                (models.PingResultDB.timestamp == latest_pings_subq.c.max_timestamp)
-            )
+        latest_pings_query = db.query(
+            models.PingResultDB.host_id, models.PingResultDB.latency
+        ).join(
+            latest_pings_subq,
+            (models.PingResultDB.host_id == latest_pings_subq.c.host_id)
+            & (models.PingResultDB.timestamp == latest_pings_subq.c.max_timestamp),
         )
 
         latest_pings_list = latest_pings_query.all()
-        latest_pings = {p.host_id: p for p in latest_pings_list}
+        # Row tuples (host_id, latency) can be destructured to save memory footprint
+        latest_pings = {host_id: latency for host_id, latency in latest_pings_list}
 
     total_hosts = 0
     reachable_hosts = 0
@@ -333,10 +343,10 @@ def get_network_status(db: Session = Depends(get_db)):
 
     for host in hosts:
         total_hosts += 1
-        last_ping = latest_pings.get(host.id)
-        if last_ping and last_ping.latency is not None:
+        last_latency = latest_pings.get(host.id)
+        if last_latency is not None:
             reachable_hosts += 1
-            total_latency += last_ping.latency
+            total_latency += last_latency
             latency_count += 1
 
     if total_hosts == 0:
@@ -464,42 +474,9 @@ def _get_sse_data():
     db = database.SessionLocal()
     try:
         hosts = db.query(models.HostDB).filter(models.HostDB.enabled == True).all()
-        cutoff = datetime.utcnow() - timedelta(minutes=5)
-
-        host_ids = [h.id for h in hosts]
-        latest_pings = {}
-        if host_ids:
-            # ⚡ Bolt: Optimized fetching latest pings using a subquery and join
-            # This replaces fetching all results within the last 5 minutes and manually filtering in Python.
-            # It improves database fetch speed and reduces memory usage footprint.
-            latest_pings_subq = (
-                db.query(
-                    models.PingResultDB.host_id,
-                    func.max(models.PingResultDB.timestamp).label('max_timestamp')
-                )
-                .filter(
-                    models.PingResultDB.host_id.in_(host_ids),
-                    models.PingResultDB.timestamp >= cutoff
-                )
-                .group_by(models.PingResultDB.host_id)
-                .subquery()
-            )
-
-            latest_pings_query = (
-                db.query(models.PingResultDB)
-                .join(
-                    latest_pings_subq,
-                    (models.PingResultDB.host_id == latest_pings_subq.c.host_id) &
-                    (models.PingResultDB.timestamp == latest_pings_subq.c.max_timestamp)
-                )
-            )
-
-            latest_pings_list = latest_pings_query.all()
-            latest_pings = {p.host_id: p for p in latest_pings_list}
 
         host_list = []
         for h in hosts:
-            last_ping = latest_pings.get(h.id)
             host_list.append(
                 {
                     "id": h.id,
