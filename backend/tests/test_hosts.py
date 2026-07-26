@@ -83,7 +83,7 @@ def test_get_metrics_no_data(client, auth_headers):
     host_id = create_resp.json()["id"]
 
     # Request metrics
-    response = client.get(f"/metrics/{host_id}")
+    response = client.get(f"/metrics/{host_id}", headers=auth_headers)
     assert response.status_code == 200
     data = response.json()
     assert data["uptime"] == 0
@@ -114,7 +114,7 @@ def test_get_metrics_with_data(client, auth_headers, db_session):
     db_session.commit()
 
     # Request metrics
-    response = client.get(f"/metrics/{host_id}")
+    response = client.get(f"/metrics/{host_id}", headers=auth_headers)
     assert response.status_code == 200
     data = response.json()
 
@@ -148,10 +148,34 @@ def test_get_metrics_range_filtering(client, auth_headers, db_session):
     db_session.commit()
 
     # Request metrics with range=-1h
-    response = client.get(f"/metrics/{host_id}?range=-1h")
+    response = client.get(f"/metrics/{host_id}?range=-1h", headers=auth_headers)
     assert response.status_code == 200
     data = response.json()
 
     # Should only return the ping from 30 mins ago
     assert len(data["data"]) == 1
     assert data["data"][0]["latency"] == 10.0
+
+
+def test_get_metrics_unauthorized(client):
+    response = client.get("/metrics/1")
+    assert response.status_code == 401
+
+
+def test_get_uptime_history_unauthorized(client):
+    response = client.get("/uptime/1")
+    assert response.status_code == 401
+
+
+def test_get_uptime_history_authenticated(client, auth_headers):
+    # Create host
+    create_resp = client.post("/hosts/", json={
+        "name": "Host Uptime Auth Test",
+        "ip_address": "10.0.0.7",
+        "interval": 30,
+    }, headers=auth_headers)
+    host_id = create_resp.json()["id"]
+
+    response = client.get(f"/uptime/{host_id}", headers=auth_headers)
+    assert response.status_code == 200
+    assert isinstance(response.json(), list)
