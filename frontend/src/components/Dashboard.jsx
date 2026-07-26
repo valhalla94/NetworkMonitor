@@ -117,16 +117,42 @@ const Dashboard = () => {
 
                     setHosts(prev => {
                         if (prev.length === 0) return prev;
-                        return prev.map(host => {
+                        let changed = false;
+                        const newHosts = prev.map(host => {
                             const updated = dataMap.get(host.id);
-                            return updated ? { ...host, ...updated } : host;
+                            if (!updated) return host;
+
+                            // ⚡ Bolt: Shallow comparison to prevent re-renders when data hasn't changed.
+                            // SSE emits every 5s, creating a new object reference here breaks React.memo
+                            // and triggers expensive list re-processing (grouping, filtering) even if nothing changed.
+                            let hasChanges = false;
+                            for (const key in updated) {
+                                if (updated[key] !== host[key]) {
+                                    hasChanges = true;
+                                    break;
+                                }
+                            }
+
+                            if (hasChanges) {
+                                changed = true;
+                                return { ...host, ...updated };
+                            }
+                            return host;
                         });
+                        return changed ? newHosts : prev;
                     });
+
                     // Update network status from host data
                     const enabled = data.filter(h => h.enabled);
                     const reachable = enabled.filter(h => h.last_status === 'UP').length;
                     if (enabled.length > 0) {
-                        setNetworkStatus(prev => ({ ...prev, reachable, total: enabled.length, status: reachable / enabled.length > 0.5 ? 'UP' : 'DOWN' }));
+                        setNetworkStatus(prev => {
+                            const newStatus = reachable / enabled.length > 0.5 ? 'UP' : 'DOWN';
+                            if (prev.reachable === reachable && prev.total === enabled.length && prev.status === newStatus) {
+                                return prev; // ⚡ Bolt: Return exact prev reference to prevent re-renders
+                            }
+                            return { ...prev, reachable, total: enabled.length, status: newStatus };
+                        });
                     }
                 } catch { /* ignore parse errors */ }
             });
