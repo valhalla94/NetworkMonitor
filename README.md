@@ -1,8 +1,25 @@
 # Network Monitor
 
 [![CI](https://github.com/valhalla94/NetworkMonitor/actions/workflows/ci.yml/badge.svg)](https://github.com/valhalla94/NetworkMonitor/actions/workflows/ci.yml)
+[![CodeQL Security Analysis](https://github.com/valhalla94/NetworkMonitor/actions/workflows/codeql.yml/badge.svg)](https://github.com/valhalla94/NetworkMonitor/actions/workflows/codeql.yml)
+[![Docker GHCR](https://img.shields.io/badge/Docker-GHCR-blue?logo=docker)](https://github.com/valhalla94/NetworkMonitor/pkgs/container/networkmonitor-backend)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-A self-hosted network monitoring dashboard built with React 19 and FastAPI. Monitor uptime, latency, and status of your network devices in real-time. Optimized for low-power devices like Synology NAS or Raspberry Pi.
+A self-hosted, enterprise-grade network monitoring dashboard built with **React 19** and **FastAPI**. Monitor uptime, latency, and status of your network devices in real-time. Optimized for low-power devices like Synology NAS or Raspberry Pi.
+
+---
+
+## 🌟 GitHub Exemplar Repository Features
+
+This repository implements all modern GitHub engineering standards and capabilities:
+- 🛡️ **Automated SAST Security**: GitHub CodeQL static security analysis scanning on every push/PR.
+- 📦 **Dependabot Dependency Management**: Weekly automated dependency updates for `pip`, `npm`, and `github-actions`.
+- 🐳 **GitHub Container Registry (GHCR)**: Automatic multi-arch Docker image builds pushed to `ghcr.io`.
+- ⚡ **CI/CD Concurrency & Job Summaries**: Automated test runs with concurrency cancellation and rich markdown summaries.
+- 📝 **Interactive Issue Forms**: Structured YAML issue templates for bugs and feature proposals.
+- 📜 **Open Source Governance**: Includes `SECURITY.md`, `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, and `LICENSE`.
+
+---
 
 ## Features
 
@@ -20,6 +37,8 @@ A self-hosted network monitoring dashboard built with React 19 and FastAPI. Moni
 - **Responsive Design**: Glassmorphism UI, works on desktop and mobile
 - **Dockerized**: Single `docker-compose up` deployment
 
+---
+
 ## Tech Stack
 
 | Layer | Technology |
@@ -30,6 +49,8 @@ A self-hosted network monitoring dashboard built with React 19 and FastAPI. Moni
 | **Database** | SQLite with WAL mode |
 | **Notifications** | Apprise |
 | **Deploy** | Docker Compose, Nginx reverse proxy |
+
+---
 
 ## Quick Start
 
@@ -55,6 +76,8 @@ A self-hosted network monitoring dashboard built with React 19 and FastAPI. Moni
 
 4. Open `http://localhost:3200` in your browser.
 
+---
+
 ## Configuration
 
 ### Environment Variables
@@ -67,58 +90,43 @@ Set these in your `.env` file or `docker-compose.yml` environment section:
 | `ADMIN_PASSWORD` | **Yes** | Dashboard login password. Default `admin` — change before production |
 | `FRONTEND_ORIGIN` | No | CORS origin for the frontend. Default: `http://localhost:3200` |
 
-### Ports
+---
 
-| Service | Default Port |
-| :--- | :--- |
-| **Frontend** | `3200` |
-| **Backend** | `8100` |
+## Development & Contributing
 
-### Notifications
+See [CONTRIBUTING.md](./CONTRIBUTING.md) for full development environment setup, testing procedures, and code formatting guidelines.
 
-Configure notification URLs in the **Settings** page of the dashboard.
-
-Examples:
-- **Discord**: `discord://webhook_id/webhook_token`
-- **Telegram**: `tgram://bot_token/chat_id`
-- **Email**: `mailto://user:password@gmail.com`
-
-See [Apprise Documentation](https://github.com/caronc/apprise) for all supported services.
-
-## Development
-
-**Backend:**
 ```bash
+# Backend Tests & Linting
 cd backend
-pip install -r requirements.txt -r requirements-dev.txt
-SECRET_KEY=dev-key ADMIN_PASSWORD=devpassword uvicorn main:app --reload
-```
+ruff check .
+pytest tests/ -v
 
-**Frontend:**
-```bash
+# Frontend Tests & Linting
 cd frontend
-npm install
-npm run dev
+npm run lint
+npm run test
 ```
 
-Frontend: `http://localhost:5173` — Backend: `http://localhost:8000`
+---
 
-**Tests:**
-```bash
-# Backend
-cd backend && pytest tests/ -v
+## Security
 
-# Frontend
-cd frontend && npm run test
-```
+See [SECURITY.md](./.github/SECURITY.md) for vulnerability disclosure details.
+
+---
 
 ## Deployment on Synology NAS
 
 See [DEPLOY_SYNOLOGY.md](./DEPLOY_SYNOLOGY.md) for detailed instructions.
 
+---
+
 ## License
 
-Open source. Free to modify and distribute.
+Released under the [MIT License](./LICENSE).
+
+---
 
 ## Preview
 

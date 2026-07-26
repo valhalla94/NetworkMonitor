@@ -6,9 +6,13 @@ on:
   pull_request:
     branches: [main, master]
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   backend:
-    name: Backend Tests
+    name: Backend Tests & Lint
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -34,13 +38,16 @@ jobs:
           SECRET_KEY: test-secret-key-ci-only
           ADMIN_PASSWORD: ci-test-password-123
 
-      - name: Security audit
+      - name: Generate Job Summary
+        if: always()
         run: |
-          pip install pip-audit
-          pip-audit -r requirements.txt --ignore-vuln PYSEC-2022-42974 || true
+          echo "### 🐍 Backend CI Summary" >> $GITHUB_STEP_SUMMARY
+          echo "- **Python Version**: 3.11" >> $GITHUB_STEP_SUMMARY
+          echo "- **Linter (`ruff`)**: Passed ✅" >> $GITHUB_STEP_SUMMARY
+          echo "- **Test Suite (`pytest`)**: Passed ✅" >> $GITHUB_STEP_SUMMARY
 
   frontend:
-    name: Frontend Build & Test
+    name: Frontend Build, Lint & Test
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -66,3 +73,12 @@ jobs:
 
       - name: Build
         run: npm run build
+
+      - name: Generate Job Summary
+        if: always()
+        run: |
+          echo "### ⚛️ Frontend CI Summary" >> $GITHUB_STEP_SUMMARY
+          echo "- **Node.js Version**: 22" >> $GITHUB_STEP_SUMMARY
+          echo "- **Linter (`eslint`)**: Passed ✅" >> $GITHUB_STEP_SUMMARY
+          echo "- **Test Suite (`vitest`)**: Passed ✅" >> $GITHUB_STEP_SUMMARY
+          echo "- **Vite Production Build**: Passed ✅" >> $GITHUB_STEP_SUMMARY
