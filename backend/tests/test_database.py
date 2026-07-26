@@ -1,6 +1,6 @@
-import pytest
 from sqlalchemy import text
 from sqlalchemy.pool import StaticPool
+
 import database
 
 

@@ -115,6 +115,7 @@ def test_get_metrics_no_data(client, auth_headers):
 
 def test_get_metrics_with_data(client, auth_headers, db_session):
     from datetime import datetime, timedelta
+
     import models
 
     # Create host
@@ -160,6 +161,7 @@ def test_get_metrics_with_data(client, auth_headers, db_session):
 
 def test_get_metrics_range_filtering(client, auth_headers, db_session):
     from datetime import datetime, timedelta
+
     import models
 
     # Create host

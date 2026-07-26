@@ -1,14 +1,15 @@
-import pytest
-import time
 import asyncio
-from httpx import AsyncClient, ASGITransport
+import time
+
+import pytest
+from httpx import ASGITransport, AsyncClient
 
 
 @pytest.mark.asyncio
 async def test_quick_ping_performance():
-    from main import app
     from unittest.mock import patch
-    import slowapi
+
+    from main import app
 
     limiter = app.state.limiter
     original_limit = limiter.limit
@@ -16,7 +17,7 @@ async def test_quick_ping_performance():
     def fake_limit(*args, **kwargs):
         return original_limit("1000/minute")
 
-    with patch("main.ping") as mock_ping, patch.object(
+    with patch("routers.tools.ping") as mock_ping, patch.object(
         limiter, "limit", side_effect=fake_limit
     ):
 

@@ -1,8 +1,5 @@
-import pytest
-from unittest.mock import patch, MagicMock
 from datetime import datetime, timedelta
-import socket
-import ssl
+from unittest.mock import MagicMock, patch
 
 from scheduler import check_ssl_expiry
 
@@ -78,7 +75,7 @@ def test_check_ssl_expiry_expired_cert(
 
 @patch("scheduler.socket.create_connection")
 def test_check_ssl_expiry_connection_error(mock_create_connection):
-    mock_create_connection.side_effect = socket.timeout("Connection timed out")
+    mock_create_connection.side_effect = TimeoutError("Connection timed out")
 
     # Call function
     days = check_ssl_expiry("example.com", 443)

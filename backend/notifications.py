@@ -1,6 +1,8 @@
-from apprise import Apprise
 import logging
+
+from apprise import Apprise
 from sqlalchemy.orm import Session
+
 from models import SettingsDB
 
 logger = logging.getLogger(__name__)

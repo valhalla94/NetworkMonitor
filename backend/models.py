@@ -1,15 +1,17 @@
+from datetime import datetime
+
+from pydantic import BaseModel, ConfigDict
 from sqlalchemy import (
-    Column,
-    Integer,
-    String,
     Boolean,
-    Float,
+    Column,
     DateTime,
+    Float,
     ForeignKey,
     Index,
+    Integer,
+    String,
 )
-from datetime import datetime
-from pydantic import BaseModel
+
 from database import Base
 
 
@@ -93,9 +95,7 @@ class HostCreate(HostBase):
 
 class Host(HostBase):
     id: int
-
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class PingResult(BaseModel):
@@ -150,9 +150,7 @@ class SpeedTestResultBase(BaseModel):
 
 class SpeedTestResult(SpeedTestResultBase):
     id: int
-
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class SettingsBase(BaseModel):
@@ -161,5 +159,4 @@ class SettingsBase(BaseModel):
 
 
 class Settings(SettingsBase):
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)

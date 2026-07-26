@@ -1,20 +1,21 @@
-import time
 import json
-import ssl
-import socket
-import subprocess
 import logging
+import socket
+import ssl
+import subprocess
+import time
 from concurrent.futures import ThreadPoolExecutor
+from datetime import datetime, timedelta
+from urllib.parse import urlparse
+
+import requests
 from apscheduler.schedulers.background import BackgroundScheduler
+from ping3 import ping
 from sqlalchemy import func
 from sqlalchemy.orm import Session
-from database import SessionLocal
-from models import HostDB, PingResultDB, SpeedTestResultDB, PublicIPHistoryDB
-from ping3 import ping
-from datetime import timedelta, datetime
-from urllib.parse import urlparse
-import requests
 
+from database import SessionLocal
+from models import HostDB, PingResultDB, PublicIPHistoryDB, SpeedTestResultDB
 from notifications import notification_manager
 
 logging.basicConfig(level=logging.INFO)

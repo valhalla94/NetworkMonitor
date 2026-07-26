@@ -1,4 +1,3 @@
-import pytest
 
 def test_uptime_history_unauthenticated(client):
     # This should return 401 once fixed.

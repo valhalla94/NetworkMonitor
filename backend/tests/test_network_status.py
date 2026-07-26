@@ -1,7 +1,8 @@
-import pytest
 from datetime import datetime, timedelta
+
 import database
 from models import HostDB, PingResultDB
+
 
 def get_test_db():
     db = database.SessionLocal()

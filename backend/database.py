@@ -1,16 +1,14 @@
 import logging
 import re
-from sqlalchemy import create_engine, text
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
+
+from sqlalchemy import create_engine, event, text
 from sqlalchemy.exc import OperationalError
+from sqlalchemy.orm import declarative_base, sessionmaker
 
 logger = logging.getLogger(__name__)
 
 SQLITE_URL = "sqlite:///./data/hosts.db"
 engine = create_engine(SQLITE_URL, connect_args={"check_same_thread": False})
-
-from sqlalchemy import event
 
 
 @event.listens_for(engine, "connect")

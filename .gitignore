@@ -3,6 +3,8 @@ node_modules/
 __pycache__/
 *.py[cod]
 *$py.class
+.venv/
+backend/.venv/
 
 # Environment variables
 .env
@@ -10,10 +12,15 @@ __pycache__/
 
 # Data and Logs
 backend_data/
+data/
+*.db
+*.db-wal
+*.db-shm
 *.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+.pytest_cache/
 
 # OS Files
 .DS_Store
@@ -23,4 +30,4 @@ Thumbs.db
 .vscode/
 .idea/
 *.swp
-data/
+*.code-workspace

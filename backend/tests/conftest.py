@@ -1,4 +1,5 @@
 import os
+
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
@@ -56,8 +57,8 @@ def db_session():
 @pytest.fixture(scope="session")
 def client(db_session):
     import database
-    from main import app
     from database import get_db
+    from main import app
 
     # Note: `database.SessionLocal` and `database.engine` are already set correctly
     # by the `db_session` fixture.

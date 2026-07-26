@@ -2,7 +2,11 @@ import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react'
 import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { getHosts, getMetrics, getNetworkStatus, getPublicIpHistory, getSpeedTestHistory, runSpeedTest, quickPing, getUptimeHistory } from '../api';
 import { Activity, Server, Wifi, WifiOff, Clock, Globe, History, Timer, Gauge, ArrowDown, ArrowUp, Play, Loader2, Search, Zap, Lock, Folder, Filter, Download, X } from 'lucide-react';
-import { format, formatDistanceToNow } from 'date-fns';
+import { formatDistanceToNow } from 'date-fns';
+import NetworkStatusBanner from './dashboard/NetworkStatusBanner';
+import PublicIpCard from './dashboard/PublicIpCard';
+import SpeedTestCard from './dashboard/SpeedTestCard';
+import QuickPingCard from './dashboard/QuickPingCard';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 
@@ -327,112 +331,24 @@ const Dashboard = () => {
         <div className="space-y-8 animate-in fade-in duration-500">
             {/* Top row: Status + IP */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div className={`lg:col-span-2 glass-panel p-6 md:p-8 rounded-2xl border-l-4 ${networkStatus.status === 'UP' ? 'border-l-emerald-500 bg-emerald-900/10' : 'border-l-rose-500 bg-rose-900/10'}`}>
-                    <div className="flex items-center gap-4 md:gap-6">
-                        <div className={`p-3 md:p-4 rounded-full flex-shrink-0 ${networkStatus.status === 'UP' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-rose-500/20 text-rose-400'}`}>
-                            {networkStatus.status === 'UP' ? <Wifi className="w-6 h-6 md:w-8 md:h-8" /> : <WifiOff className="w-6 h-6 md:w-8 md:h-8" />}
-                        </div>
-                        <div>
-                            <h2 className="text-2xl md:text-3xl font-bold tracking-tight text-white">System Status: {networkStatus.status}</h2>
-                            <p className="text-slate-400 mt-1">Reachable: <span className="text-white font-medium">{networkStatus.reachable}</span> / {networkStatus.total}</p>
-                        </div>
-                    </div>
-                </div>
-
-                <div className="glass-panel p-6 rounded-2xl border-l-4 border-l-blue-500 bg-blue-900/10 relative overflow-hidden group">
-                    <div className="absolute top-0 right-0 p-4 opacity-10 pointer-events-none">
-                        <Globe className="w-20 h-20 text-blue-400" />
-                    </div>
-                    <div className="flex items-center gap-3 mb-4">
-                        <div className="p-2 rounded-full bg-blue-500/20 text-blue-400"><Globe className="w-5 h-5" /></div>
-                        <h2 className="text-lg font-bold text-white">Public IP</h2>
-                        {ipStats.duration && (
-                            <div className="ml-auto px-3 py-1 rounded-full bg-blue-500/20 border border-blue-500/30 text-blue-300 text-xs flex items-center gap-1.5">
-                                <Timer className="w-3.5 h-3.5" />{ipStats.duration}
-                            </div>
-                        )}
-                    </div>
-                    <div className="text-2xl md:text-3xl font-mono font-bold text-white tracking-wider mb-1">
-                        {publicIpHistory.length > 0 ? publicIpHistory[0].ip_address : '—'}
-                    </div>
-                    <div className="text-xs text-slate-400 flex items-center gap-1.5">
-                        <Clock className="w-3.5 h-3.5" />
-                        Last checked: {publicIpHistory.length > 0 ? format(new Date(publicIpHistory[0].time), 'HH:mm:ss') : '-'}
-                    </div>
-                    {ipStats.since && (
-                        <div className="mt-3 pt-3 border-t border-slate-700/50 text-xs text-blue-200">
-                            Active since {format(new Date(ipStats.since), 'MMM d, yyyy • HH:mm')}
-                        </div>
-                    )}
-                </div>
+                <NetworkStatusBanner networkStatus={networkStatus} />
+                <PublicIpCard publicIpHistory={publicIpHistory} ipStats={ipStats} />
             </div>
 
             {/* Speed + Quick Ping + Health */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {/* Speed Test Card */}
-                <div className="glass-panel p-6 rounded-2xl border-l-4 border-l-violet-500 bg-violet-900/10 relative overflow-hidden">
-                    <div className="absolute top-0 right-0 p-4 opacity-10 pointer-events-none">
-                        <Gauge className="w-20 h-20 text-violet-400" />
-                    </div>
-                    <div className="flex items-center justify-between mb-4">
-                        <div className="flex items-center gap-3">
-                            <div className="p-2 rounded-full bg-violet-500/20 text-violet-400"><Gauge className="w-5 h-5" /></div>
-                            <h2 className="text-lg font-bold text-white">Internet Speed</h2>
-                        </div>
-                        <button onClick={handleRunSpeedTest} disabled={isSpeedTestRunning}
-                            className={`px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-all cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-400 ${isSpeedTestRunning ? 'bg-violet-500/10 text-violet-400' : 'bg-violet-600 hover:bg-violet-500 text-white'}`}>
-                            {isSpeedTestRunning ? <><Loader2 className="w-3.5 h-3.5 animate-spin" aria-hidden="true" />Running...</> : <><Play className="w-3.5 h-3.5 fill-current" aria-hidden="true" />Run</>}
-                        </button>
-                    </div>
-                    <div className="grid grid-cols-2 gap-4 mb-4">
-                        <div>
-                            <div className="text-xs text-slate-400 mb-1 flex items-center gap-1"><ArrowDown className="w-3 h-3" />Download</div>
-                            <div className="text-xl font-mono font-bold text-white">{speedTestHistory.length > 0 ? speedTestHistory[0].download.toFixed(1) : '-'} <span className="text-xs text-slate-500">Mbps</span></div>
-                        </div>
-                        <div>
-                            <div className="text-xs text-slate-400 mb-1 flex items-center gap-1"><ArrowUp className="w-3 h-3" />Upload</div>
-                            <div className="text-xl font-mono font-bold text-white">{speedTestHistory.length > 0 ? speedTestHistory[0].upload.toFixed(1) : '-'} <span className="text-xs text-slate-500">Mbps</span></div>
-                        </div>
-                    </div>
-                    <div className="flex items-center justify-between text-sm border-t border-slate-700/50 pt-3">
-                        <span className="text-slate-400">Ping: <span className="text-white font-mono">{speedTestHistory.length > 0 ? speedTestHistory[0].ping.toFixed(0) : '-'}ms</span></span>
-                        <span className="text-xs text-slate-500">{speedTestHistory.length > 0 ? formatDistanceToNow(new Date(speedTestHistory[0].timestamp), { addSuffix: true }) : 'No data'}</span>
-                    </div>
-                </div>
-
-                {/* Quick Ping Card */}
-                <div className="glass-panel p-6 rounded-2xl border-l-4 border-l-amber-500 bg-amber-900/10 relative overflow-hidden">
-                    <div className="absolute top-0 right-0 p-4 opacity-10 pointer-events-none">
-                        <Search className="w-20 h-20 text-amber-400" />
-                    </div>
-                    <div className="flex items-center gap-3 mb-4">
-                        <div className="p-2 rounded-full bg-amber-500/20 text-amber-400"><Search className="w-5 h-5" /></div>
-                        <h2 className="text-lg font-bold text-white">Quick Ping</h2>
-                    </div>
-                    <form onSubmit={handleQuickPing} className="flex gap-2 mb-4">
-                        <input type="text" value={quickPingTarget} onChange={(e) => setQuickPingTarget(e.target.value)}
-                            placeholder="IP or Hostname" disabled={quickPingLoading}
-                            aria-label="Target IP or Hostname for quick ping"
-                            className="flex-1 bg-slate-800/50 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-amber-500 focus-visible:ring-1 focus-visible:ring-amber-500 transition-colors disabled:opacity-50" />
-                        <button type="submit" disabled={quickPingLoading || !quickPingTarget}
-                            aria-label={quickPingLoading ? 'Pinging target...' : 'Run Quick Ping'}
-                            className="bg-amber-600 hover:bg-amber-500 disabled:opacity-50 text-white px-3 py-2 rounded-lg transition-all flex items-center justify-center gap-1.5 font-medium cursor-pointer text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 min-w-[2.5rem]">
-                            {quickPingLoading ? <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" /> : <Play className="w-4 h-4 fill-current" aria-hidden="true" />}
-                        </button>
-                    </form>
-                    {quickPingResult && (
-                        <div className={`p-3 rounded-lg border text-sm ${quickPingResult.reachable ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-300' : 'bg-rose-500/10 border-rose-500/20 text-rose-300'}`}>
-                            {quickPingResult.error ? (
-                                <span>Error: {quickPingResult.error}</span>
-                            ) : (
-                                <div className="flex justify-between items-center">
-                                    <span className="font-medium">Reachable ✓</span>
-                                    <span className="font-mono font-bold">{quickPingResult.latency?.toFixed(1)}ms</span>
-                                </div>
-                            )}
-                        </div>
-                    )}
-                </div>
+                <SpeedTestCard
+                    speedTestHistory={speedTestHistory}
+                    isSpeedTestRunning={isSpeedTestRunning}
+                    onRunSpeedTest={handleRunSpeedTest}
+                />
+                <QuickPingCard
+                    target={quickPingTarget}
+                    loading={quickPingLoading}
+                    result={quickPingResult}
+                    onChangeTarget={setQuickPingTarget}
+                    onSubmitPing={handleQuickPing}
+                />
 
                 {/* Network Health Card */}
                 <div className="glass-panel p-6 rounded-2xl border-l-4 border-l-cyan-500 bg-cyan-900/10 relative overflow-hidden">
