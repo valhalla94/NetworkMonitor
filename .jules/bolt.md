@@ -17,3 +17,7 @@
 ## 2025-01-22 - Optimize Database Reads with Composite Index
 **Learning:** Found a performance bottleneck where querying `PingResultDB` by `host_id` and filtering/ordering by `timestamp` was slow for large datasets because it lacked a composite index. Separate indices on `host_id` and `timestamp` exist, but SQLite usually uses only one index per query, falling back to a sequential scan for the other.
 **Action:** Add a composite index on frequently paired query fields `(host_id, timestamp)` in SQLAlchemy using `Index('ix_name', 'col1', 'col2')` to significantly speed up range and exact-match queries that depend on both columns.
+
+## 2026-07-04 - Memoize expensive host grouping in StatusPage
+**Learning:** Similar to `Dashboard.jsx`, the `StatusPage.jsx` component was recalculating the grouped host list on *every* render cycle, triggered by `lastUpdated` timestamp ticks every 30 seconds.
+**Action:** Used `useMemo` to cache the grouping operation with `[hosts]` as the dependency. This ensures the array grouping logic only runs when the host data actually changes, preventing redundant computations during standard time ticks.
