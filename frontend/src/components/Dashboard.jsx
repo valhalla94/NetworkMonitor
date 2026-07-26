@@ -129,7 +129,12 @@ const Dashboard = () => {
             clearInterval(ipInterval);
             clearInterval(speedInterval);
         };
+<<<<<<< HEAD
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+=======
     }, [fetchHosts]);
+>>>>>>> main
 
     useEffect(() => {
         if (publicIpHistory.length > 0) {
@@ -177,7 +182,11 @@ const Dashboard = () => {
             const interval = setInterval(() => fetchMetrics(selectedHost.id), 30000);
             return () => clearInterval(interval);
         }
+<<<<<<< HEAD
+    }, [selectedHost, fetchMetrics]);
+=======
     }, [selectedHost, timeRange, fetchMetrics]);
+>>>>>>> main
 
     useEffect(() => {
         if (selectedHost && showUptimeChart) {
