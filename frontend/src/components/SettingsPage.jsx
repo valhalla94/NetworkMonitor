@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import HostManager from './HostManager';
-import { Lock, ArrowLeft, Eye, EyeOff, Bell, Save } from 'lucide-react';
+import { Lock, ArrowLeft, Eye, EyeOff, Bell, Save, Loader2 } from 'lucide-react';
 import { getHosts, login, updateNotificationSettings, getSettings } from '../api';
 
 const SettingsPage = () => {
@@ -12,6 +12,8 @@ const SettingsPage = () => {
     const [hosts, setHosts] = useState([]);
     const [notificationUrl, setNotificationUrl] = useState('');
     const [notificationMsg, setNotificationMsg] = useState('');
+    const [isLoggingIn, setIsLoggingIn] = useState(false);
+    const [isSaving, setIsSaving] = useState(false);
     const navigate = useNavigate();
 
     const fetchHosts = async () => {
@@ -51,17 +53,21 @@ const SettingsPage = () => {
 
     const handleSaveNotification = async (e) => {
         e.preventDefault();
+        setIsSaving(true);
         try {
             await updateNotificationSettings(notificationUrl);
             setNotificationMsg('Settings saved and test notification sent!');
             setTimeout(() => setNotificationMsg(''), 5000);
         } catch {
             setNotificationMsg('Error saving settings.');
+        } finally {
+            setIsSaving(false);
         }
     };
 
     const handleLogin = async (e) => {
         e.preventDefault();
+        setIsLoggingIn(true);
         try {
             const response = await login('admin', password);
             sessionStorage.setItem('token', response.data.access_token);
@@ -71,6 +77,8 @@ const SettingsPage = () => {
         } catch {
             setError('Incorrect password');
             setPassword('');
+        } finally {
+            setIsLoggingIn(false);
         }
     };
 
@@ -86,7 +94,7 @@ const SettingsPage = () => {
                 <div className="glass-panel p-8 rounded-2xl w-full max-w-md">
                     <div className="text-center mb-8">
                         <div className="inline-flex p-4 bg-blue-500/10 rounded-full mb-4">
-                            <Lock className="w-8 h-8 text-blue-400" />
+                            <Lock className="w-8 h-8 text-blue-400" aria-hidden="true" />
                         </div>
                         <h2 className="text-3xl font-bold text-white mb-2">Settings Access</h2>
                         <p className="text-slate-400">Enter password to manage host settings</p>
@@ -96,7 +104,7 @@ const SettingsPage = () => {
                         <div className="space-y-2">
                             <label htmlFor="settings-password" className="text-sm font-medium text-slate-300 ml-1">Password</label>
                             <div className="relative">
-                                <Lock className="absolute left-3 top-3 w-5 h-5 text-slate-500" />
+                                <Lock className="absolute left-3 top-3 w-5 h-5 text-slate-500" aria-hidden="true" />
                                 <input
                                     id="settings-password"
                                     type={showPassword ? 'text' : 'password'}
@@ -110,27 +118,27 @@ const SettingsPage = () => {
                                 <button
                                     type="button"
                                     onClick={() => setShowPassword(!showPassword)}
-                                    className="absolute right-3 top-3 text-slate-500 hover:text-slate-300 transition-colors"
+                                    className="absolute right-3 top-3 text-slate-500 hover:text-slate-300 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded-lg"
                                     aria-label={showPassword ? "Hide password" : "Show password"}
                                     title={showPassword ? "Hide password" : "Show password"}
                                 >
-                                    {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                                    {showPassword ? <EyeOff className="w-5 h-5" aria-hidden="true" /> : <Eye className="w-5 h-5" aria-hidden="true" />}
                                 </button>
                             </div>
                             {error && <p className="text-rose-400 text-sm ml-1 mt-2">{error}</p>}
                         </div>
 
                         <div className="space-y-3">
-                            <button type="submit" className="glass-button w-full py-3 rounded-xl font-bold text-lg flex items-center justify-center gap-2">
-                                <Lock className="w-5 h-5" />
-                                Unlock Settings
+                            <button type="submit" disabled={isLoggingIn} className="glass-button w-full py-3 rounded-xl font-bold text-lg flex items-center justify-center gap-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 disabled:opacity-50">
+                                {isLoggingIn ? <Loader2 className="w-5 h-5 animate-spin" aria-hidden="true" /> : <Lock className="w-5 h-5" aria-hidden="true" />}
+                                {isLoggingIn ? 'Unlocking...' : 'Unlock Settings'}
                             </button>
                             <button
                                 type="button"
                                 onClick={() => navigate('/')}
-                                className="w-full py-3 rounded-xl font-medium text-slate-300 hover:text-white hover:bg-slate-800/30 transition-all flex items-center justify-center gap-2"
+                                className="w-full py-3 rounded-xl font-medium text-slate-300 hover:text-white hover:bg-slate-800/30 transition-all flex items-center justify-center gap-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-500"
                             >
-                                <ArrowLeft className="w-5 h-5" />
+                                <ArrowLeft className="w-5 h-5" aria-hidden="true" />
                                 Back to Dashboard
                             </button>
                         </div>
@@ -148,16 +156,16 @@ const SettingsPage = () => {
                     <div className="flex gap-3">
                         <button
                             onClick={() => navigate('/')}
-                            className="px-4 py-2 rounded-xl font-medium text-slate-300 hover:text-white hover:bg-slate-800/30 transition-all flex items-center gap-2"
+                            className="px-4 py-2 rounded-xl font-medium text-slate-300 hover:text-white hover:bg-slate-800/30 transition-all flex items-center gap-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-500"
                         >
-                            <ArrowLeft className="w-5 h-5" />
+                            <ArrowLeft className="w-5 h-5" aria-hidden="true" />
                             Dashboard
                         </button>
                         <button
                             onClick={handleLogout}
-                            className="px-4 py-2 rounded-xl font-medium bg-rose-500/10 text-rose-400 hover:bg-rose-500/20 transition-all flex items-center gap-2"
+                            className="px-4 py-2 rounded-xl font-medium bg-rose-500/10 text-rose-400 hover:bg-rose-500/20 transition-all flex items-center gap-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-500"
                         >
-                            <Lock className="w-5 h-5" />
+                            <Lock className="w-5 h-5" aria-hidden="true" />
                             Logout
                         </button>
                     </div>
@@ -167,7 +175,7 @@ const SettingsPage = () => {
 
                 <div className="glass-panel p-8 rounded-2xl">
                     <h2 className="text-2xl font-bold mb-6 flex items-center gap-3 text-white">
-                        <Bell className="text-amber-400" />
+                        <Bell className="text-amber-400" aria-hidden="true" />
                         Notification Settings
                     </h2>
                     <div className="space-y-4 max-w-2xl">
@@ -185,9 +193,9 @@ const SettingsPage = () => {
                                 />
                             </div>
                             <div className="flex items-end">
-                                <button type="submit" className="glass-button px-6 py-2.5 rounded-xl font-bold text-lg flex items-center gap-2">
-                                    <Save className="w-5 h-5" />
-                                    Save & Test
+                                <button type="submit" disabled={isSaving} className="glass-button px-6 py-2.5 rounded-xl font-bold text-lg flex items-center gap-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 disabled:opacity-50">
+                                    {isSaving ? <Loader2 className="w-5 h-5 animate-spin" aria-hidden="true" /> : <Save className="w-5 h-5" aria-hidden="true" />}
+                                    {isSaving ? 'Saving...' : 'Save & Test'}
                                 </button>
                             </div>
                         </form>
