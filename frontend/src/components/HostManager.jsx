@@ -127,7 +127,11 @@ const HostManager = ({ onHostAdded, hosts, onHostDeleted }) => {
                                     <Plus className="text-blue-400 w-5 h-5" />
                                     Add New Host
                                 </h3>
-                                <button onClick={() => setShowAddPanel(false)} className="text-slate-400 hover:text-white transition-colors">
+                                <button
+                                    onClick={() => setShowAddPanel(false)}
+                                    aria-label="Close"
+                                    className="text-slate-400 hover:text-white transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded-lg p-1"
+                                >
                                     <X className="w-6 h-6" />
                                 </button>
                             </div>
@@ -176,11 +180,13 @@ const HostManager = ({ onHostAdded, hosts, onHostDeleted }) => {
                                                 <td className="p-3 text-right align-top">
                                                     <div className="flex gap-2 justify-end">
                                                         <button onClick={() => saveEdit(host.id)}
-                                                            className="p-2 text-emerald-400 hover:bg-emerald-500/10 rounded-lg transition-colors" title="Save">
+                                                            aria-label="Save Edit"
+                                                            className="p-2 text-emerald-400 hover:bg-emerald-500/10 rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500" title="Save">
                                                             <Check className="w-5 h-5" />
                                                         </button>
                                                         <button onClick={() => setEditingHost(null)}
-                                                            className="p-2 text-slate-400 hover:bg-slate-500/10 rounded-lg transition-colors" title="Cancel">
+                                                            aria-label="Cancel Edit"
+                                                            className="p-2 text-slate-400 hover:bg-slate-500/10 rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400" title="Cancel">
                                                             <X className="w-5 h-5" />
                                                         </button>
                                                     </div>
@@ -230,11 +236,13 @@ const HostManager = ({ onHostAdded, hosts, onHostDeleted }) => {
                                                 <td className="p-4 text-right">
                                                     <div className="flex gap-2 justify-end">
                                                         <button onClick={() => startEdit(host)}
-                                                            className="p-2 text-blue-400 hover:bg-blue-500/10 rounded-lg transition-colors" title="Edit">
+                                                            aria-label="Edit Host"
+                                                            className="p-2 text-blue-400 hover:bg-blue-500/10 rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500" title="Edit">
                                                             <Edit2 className="w-5 h-5" />
                                                         </button>
                                                         <button onClick={() => handleDelete(host.id)}
-                                                            className="p-2 text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors" title="Delete">
+                                                            aria-label="Delete Host"
+                                                            className="p-2 text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-500" title="Delete">
                                                             <Trash2 className="w-5 h-5" />
                                                         </button>
                                                     </div>

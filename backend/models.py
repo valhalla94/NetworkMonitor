@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Boolean, Float, DateTime, ForeignKey
+from sqlalchemy import Column, Integer, String, Boolean, Float, DateTime, ForeignKey, Index
 from datetime import datetime
 from pydantic import BaseModel
 from database import Base
@@ -94,6 +94,13 @@ class PingResultDB(Base):
     host_id = Column(Integer, ForeignKey("hosts.id"), index=True)
     latency = Column(Float, nullable=True)
     timestamp = Column(DateTime, default=datetime.utcnow, index=True)
+
+    # ⚡ Bolt: Added composite index on (host_id, timestamp)
+    # This prevents full table scans when filtering metrics by host and ordering by time.
+    # Impact: Reduces query time significantly for `/metrics` and `/uptime` endpoints on large datasets.
+    __table_args__ = (
+        Index("ix_ping_results_host_id_timestamp", "host_id", "timestamp"),
+    )
 
 
 class PublicIPHistoryDB(Base):

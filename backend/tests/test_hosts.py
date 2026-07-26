@@ -1,6 +1,12 @@
-def test_get_hosts_public(client):
-    """GET /hosts/ is public (no auth needed for dashboard read access)."""
+def test_get_hosts_requires_auth(client):
+    """GET /hosts/ requires authentication."""
     response = client.get("/hosts/")
+    assert response.status_code == 401
+
+
+def test_get_hosts_authenticated(client, auth_headers):
+    """GET /hosts/ works with valid authentication."""
+    response = client.get("/hosts/", headers=auth_headers)
     assert response.status_code == 200
     assert isinstance(response.json(), list)
 
@@ -28,7 +34,7 @@ def test_get_host(client, auth_headers):
     }, headers=auth_headers)
     host_id = create_resp.json()["id"]
 
-    response = client.get(f"/hosts/{host_id}")
+    response = client.get(f"/hosts/{host_id}", headers=auth_headers)
     assert response.status_code == 200
     assert response.json()["id"] == host_id
 
@@ -44,7 +50,7 @@ def test_delete_host(client, auth_headers):
     del_resp = client.delete(f"/hosts/{host_id}", headers=auth_headers)
     assert del_resp.status_code == 200
 
-    get_resp = client.get(f"/hosts/{host_id}")
+    get_resp = client.get(f"/hosts/{host_id}", headers=auth_headers)
     assert get_resp.status_code == 404
 
 

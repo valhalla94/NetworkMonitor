@@ -324,7 +324,6 @@ def check_heartbeat_timeouts():
 
             last = True if last_timestamp and last_timestamp >= cutoff else False
             new_status = "UP" if last else "DOWN"
-
             if host.last_status != new_status:
                 host.last_status = new_status
                 db.commit()
