@@ -408,7 +408,7 @@ const Dashboard = () => {
                         className="w-full bg-slate-800/50 border border-slate-700 rounded-xl pl-9 pr-4 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500 focus-visible:ring-1 focus-visible:ring-blue-500 transition-colors"
                     />
                 </div>
-                <div className="flex items-center gap-2 bg-slate-900/50 p-1 rounded-xl border border-slate-700/50">
+                <div className="flex items-center gap-2 bg-slate-900/50 p-1 rounded-xl border border-slate-700/50" role="group" aria-label="Status filters">
                     {[
                         { label: 'All', value: 'all' },
                         { label: 'UP', value: 'up' },
@@ -416,6 +416,7 @@ const Dashboard = () => {
                         { label: 'Maint.', value: 'maintenance' },
                     ].map(opt => (
                         <button key={opt.value} onClick={() => setStatusFilter(opt.value)}
+                            aria-pressed={statusFilter === opt.value}
                             className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${statusFilter === opt.value ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}>
                             {opt.label}
                         </button>
