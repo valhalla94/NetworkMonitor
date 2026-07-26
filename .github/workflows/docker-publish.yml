@@ -29,7 +29,7 @@ jobs:
 
       - name: Extract metadata for Backend
         id: meta
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@v6
         with:
           images: ${{ env.REGISTRY }}/${{ github.repository }}-backend
           tags: |
@@ -70,7 +70,7 @@ jobs:
 
       - name: Extract metadata for Frontend
         id: meta
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@v6
         with:
           images: ${{ env.REGISTRY }}/${{ github.repository }}-frontend
           tags: |
