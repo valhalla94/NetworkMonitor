@@ -29,7 +29,7 @@ jobs:
 
       - name: Extract metadata for Backend
         id: meta
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@v6
         with:
           images: ${{ env.REGISTRY }}/${{ github.repository }}-backend
           tags: |
@@ -40,7 +40,7 @@ jobs:
         uses: docker/setup-buildx-action@v3
 
       - name: Build and push Backend image
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v7
         with:
           context: ./backend
           file: ./backend/Dockerfile
@@ -70,7 +70,7 @@ jobs:
 
       - name: Extract metadata for Frontend
         id: meta
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@v6
         with:
           images: ${{ env.REGISTRY }}/${{ github.repository }}-frontend
           tags: |
@@ -81,7 +81,7 @@ jobs:
         uses: docker/setup-buildx-action@v3
 
       - name: Build and push Frontend image
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v7
         with:
           context: ./frontend
           file: ./frontend/Dockerfile
