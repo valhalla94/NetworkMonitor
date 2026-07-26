@@ -3,6 +3,7 @@ import re
 import json
 import asyncio
 import logging
+import secrets
 from fastapi import FastAPI, Depends, HTTPException, status, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
@@ -29,10 +30,11 @@ logger = logging.getLogger(__name__)
 # Hash admin password once at startup (bcrypt is slow — avoid rehashing per-request)
 _admin_password_raw = os.getenv("ADMIN_PASSWORD")
 if not _admin_password_raw:
+    _admin_password_raw = secrets.token_urlsafe(16)
     logger.warning(
-        "⚠️  ADMIN_PASSWORD not set! Using default 'admin'. Set it before production use."
+        f"⚠️  ADMIN_PASSWORD not set! Generated random admin password: {_admin_password_raw}\n"
+        "Please set the ADMIN_PASSWORD environment variable before production use."
     )
-    _admin_password_raw = "admin"
 elif _admin_password_raw in ("admin", "password", "123456", "test"):
     logger.warning("⚠️  ADMIN_PASSWORD is too weak. Use a strong password.")
 ADMIN_PASSWORD_HASH = auth.get_password_hash(_admin_password_raw)
@@ -40,9 +42,7 @@ ADMIN_PASSWORD_HASH = auth.get_password_hash(_admin_password_raw)
 # Rate limiter
 limiter = Limiter(key_func=get_remote_address)
 
-# DB init
-database.migrate_db()
-models.Base.metadata.create_all(bind=database.engine)
+# DB init (moved to startup_event to avoid immediate DB creation on import)
 
 app = FastAPI(title="Network Monitor API")
 app.state.limiter = limiter
@@ -109,6 +109,8 @@ async def login_for_access_token(
 
 @app.on_event("startup")
 def startup_event():
+    database.migrate_db()
+    models.Base.metadata.create_all(bind=database.engine)
     scheduler.start_scheduler()
     db = database.SessionLocal()
     try:
@@ -132,12 +134,21 @@ def create_host(
 
 
 @app.get("/hosts/", response_model=List[models.Host])
-def read_hosts(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+def read_hosts(
+    skip: int = 0,
+    limit: int = 100,
+    db: Session = Depends(get_db),
+    current_user: auth.User = Depends(get_current_user),
+):
     return db.query(models.HostDB).offset(skip).limit(limit).all()
 
 
 @app.get("/hosts/{host_id}", response_model=models.Host)
-def read_host(host_id: int, db: Session = Depends(get_db)):
+def read_host(
+    host_id: int,
+    db: Session = Depends(get_db),
+    current_user: auth.User = Depends(get_current_user),
+):
     db_host = db.query(models.HostDB).filter(models.HostDB.id == host_id).first()
     if db_host is None:
         raise HTTPException(status_code=404, detail="Host not found")
@@ -240,7 +251,10 @@ def get_metrics(host_id: int, range: str = "-1h", db: Session = Depends(get_db))
 
 @app.get("/uptime/{host_id}")
 def get_uptime_history(
-    host_id: int, range: str = "-30d", db: Session = Depends(get_db)
+    host_id: int,
+    range: str = "-30d",
+    db: Session = Depends(get_db),
+    current_user: auth.User = Depends(get_current_user),
 ):
     """Daily uptime percentage for the given host."""
     now = datetime.utcnow()
