@@ -1,4 +1,3 @@
-from datetime import datetime, timedelta
 
 import database
 from models import HostDB, PingResultDB
@@ -31,15 +30,9 @@ def test_network_status_no_data(client, auth_headers):
 
 def test_network_status_up(client, auth_headers):
     db_session = get_test_db()
-    host1 = HostDB(name="Host 1", ip_address="1.1.1.1", enabled=True)
-    host2 = HostDB(name="Host 2", ip_address="2.2.2.2", enabled=True)
+    host1 = HostDB(name="Host 1", ip_address="1.1.1.1", enabled=True, last_status="UP", average_latency=10.0)
+    host2 = HostDB(name="Host 2", ip_address="2.2.2.2", enabled=True, last_status="UP", average_latency=20.0)
     db_session.add_all([host1, host2])
-    db_session.commit()
-
-    now = datetime.utcnow()
-    ping1 = PingResultDB(host_id=host1.id, latency=10.0, timestamp=now - timedelta(minutes=1))
-    ping2 = PingResultDB(host_id=host2.id, latency=20.0, timestamp=now - timedelta(minutes=1))
-    db_session.add_all([ping1, ping2])
     db_session.commit()
 
     response = client.get("/status", headers=auth_headers)
@@ -52,17 +45,9 @@ def test_network_status_up(client, auth_headers):
 
 def test_network_status_down(client, auth_headers):
     db_session = get_test_db()
-    host1 = HostDB(name="Host 1", ip_address="1.1.1.1", enabled=True)
-    host2 = HostDB(name="Host 2", ip_address="2.2.2.2", enabled=True)
+    host1 = HostDB(name="Host 1", ip_address="1.1.1.1", enabled=True, last_status="DOWN", average_latency=10.0)
+    host2 = HostDB(name="Host 2", ip_address="2.2.2.2", enabled=True, last_status="UNKNOWN", average_latency=None)
     db_session.add_all([host1, host2])
-    db_session.commit()
-
-    now = datetime.utcnow()
-    # One is unreachable (latency=None)
-    ping1 = PingResultDB(host_id=host1.id, latency=None, timestamp=now - timedelta(minutes=1))
-    # One has no recent ping
-    # So both are effectively down
-    db_session.add(ping1)
     db_session.commit()
 
     response = client.get("/status", headers=auth_headers)
@@ -76,15 +61,10 @@ def test_network_status_down(client, auth_headers):
 def test_network_status_down_minority_reachable(client, auth_headers):
     db_session = get_test_db()
     # Create 3 hosts, only 1 is reachable -> 1/3 is not > 0.5 -> DOWN
-    hosts = [HostDB(name=f"Host {i}", ip_address=f"1.1.1.{i}", enabled=True) for i in range(1, 4)]
+    hosts = [HostDB(name=f"Host {i}", ip_address=f"1.1.1.{i}", enabled=True, last_status="DOWN") for i in range(1, 4)]
+    hosts[0].last_status = "UP"
+    hosts[0].average_latency = 50.0
     db_session.add_all(hosts)
-    db_session.commit()
-
-    now = datetime.utcnow()
-    # Only host 1 gets a successful ping
-    ping1 = PingResultDB(host_id=hosts[0].id, latency=50.0, timestamp=now - timedelta(minutes=1))
-    ping2 = PingResultDB(host_id=hosts[1].id, latency=None, timestamp=now - timedelta(minutes=1))
-    db_session.add_all([ping1, ping2])
     db_session.commit()
 
     response = client.get("/status", headers=auth_headers)
@@ -97,15 +77,9 @@ def test_network_status_down_minority_reachable(client, auth_headers):
 
 def test_network_status_ignores_disabled(client, auth_headers):
     db_session = get_test_db()
-    host1 = HostDB(name="Host 1", ip_address="1.1.1.1", enabled=False) # Disabled!
-    host2 = HostDB(name="Host 2", ip_address="2.2.2.2", enabled=True) # Enabled!
+    host1 = HostDB(name="Host 1", ip_address="1.1.1.1", enabled=False, last_status="UP", average_latency=10.0) # Disabled!
+    host2 = HostDB(name="Host 2", ip_address="2.2.2.2", enabled=True, last_status="UP", average_latency=20.0) # Enabled!
     db_session.add_all([host1, host2])
-    db_session.commit()
-
-    now = datetime.utcnow()
-    ping1 = PingResultDB(host_id=host1.id, latency=10.0, timestamp=now - timedelta(minutes=1))
-    ping2 = PingResultDB(host_id=host2.id, latency=20.0, timestamp=now - timedelta(minutes=1))
-    db_session.add_all([ping1, ping2])
     db_session.commit()
 
     response = client.get("/status", headers=auth_headers)
@@ -118,14 +92,11 @@ def test_network_status_ignores_disabled(client, auth_headers):
 
 def test_network_status_ignores_old_pings(client, auth_headers):
     db_session = get_test_db()
-    host1 = HostDB(name="Host 1", ip_address="1.1.1.1", enabled=True)
+    # this test relies on old behavior of ping cutoff, but the current behavior uses last_status directly
+    # and last_status is maintained by the scheduler based on the most recent pings
+    # we simulate the scheduler having set last_status to DOWN because of an old ping
+    host1 = HostDB(name="Host 1", ip_address="1.1.1.1", enabled=True, last_status="DOWN")
     db_session.add(host1)
-    db_session.commit()
-
-    now = datetime.utcnow()
-    # Ping is 6 minutes old, cutoff is 5 minutes
-    ping1 = PingResultDB(host_id=host1.id, latency=10.0, timestamp=now - timedelta(minutes=6))
-    db_session.add(ping1)
     db_session.commit()
 
     response = client.get("/status", headers=auth_headers)
@@ -138,16 +109,9 @@ def test_network_status_ignores_old_pings(client, auth_headers):
 
 def test_network_status_takes_latest_ping(client, auth_headers):
     db_session = get_test_db()
-    host1 = HostDB(name="Host 1", ip_address="1.1.1.1", enabled=True)
+    # this test relies on old behavior of taking the latest ping, but the current behavior uses last_status directly
+    host1 = HostDB(name="Host 1", ip_address="1.1.1.1", enabled=True, last_status="UP", average_latency=20.0)
     db_session.add(host1)
-    db_session.commit()
-
-    now = datetime.utcnow()
-    # Old ping
-    ping1 = PingResultDB(host_id=host1.id, latency=10.0, timestamp=now - timedelta(minutes=4))
-    # Latest ping (this should be the one taken)
-    ping2 = PingResultDB(host_id=host1.id, latency=20.0, timestamp=now - timedelta(minutes=1))
-    db_session.add_all([ping1, ping2])
     db_session.commit()
 
     response = client.get("/status", headers=auth_headers)
