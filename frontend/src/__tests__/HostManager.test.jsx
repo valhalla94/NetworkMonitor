@@ -28,7 +28,8 @@ describe('HostManager', () => {
 
     it('shows empty state when no hosts', () => {
         render(<HostManager hosts={[]} onHostAdded={() => {}} onHostDeleted={() => {}} />);
-        expect(screen.getByText(/No hosts added yet/)).toBeInTheDocument();
+        expect(screen.getByText(/You haven't added any hosts to monitor yet/)).toBeInTheDocument();
+        expect(screen.getByText(/Add First Host/)).toBeInTheDocument();
     });
 
     it('shows edit controls on edit button click', () => {

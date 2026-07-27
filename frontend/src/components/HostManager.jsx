@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { createHost, updateHost, deleteHost } from '../api';
 import HostFormFields from './HostFormFields';
-import { Plus, Trash2, Globe, Clock, Edit2, X, Check, AlertTriangle, Heart } from 'lucide-react';
+import { Plus, Trash2, Globe, Clock, Edit2, X, Check, AlertTriangle, Heart, Loader2 } from 'lucide-react';
 
 
 const DEFAULT_FORM = {
@@ -27,6 +27,7 @@ const HostManager = ({ onHostAdded, hosts, onHostDeleted }) => {
     const [editingHost, setEditingHost] = useState(null);
     const [editForm, setEditForm] = useState(DEFAULT_FORM);
     const [showAddPanel, setShowAddPanel] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     const buildPayload = (f) => ({
         name: f.name,
@@ -48,6 +49,7 @@ const HostManager = ({ onHostAdded, hosts, onHostDeleted }) => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        setIsSubmitting(true);
         try {
             await createHost(buildPayload(form));
             setForm(DEFAULT_FORM);
@@ -56,6 +58,8 @@ const HostManager = ({ onHostAdded, hosts, onHostDeleted }) => {
         } catch (error) {
             console.error('Error creating host:', error);
             alert('Failed to create host');
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
@@ -137,9 +141,18 @@ const HostManager = ({ onHostAdded, hosts, onHostDeleted }) => {
                             </div>
                             <form onSubmit={handleSubmit} className="space-y-4">
                                 <HostFormFields f={form} setF={setForm} />
-                                <button type="submit" className="glass-button w-full py-3 rounded-xl font-bold flex items-center justify-center gap-2 mt-4">
-                                    <Plus className="w-5 h-5" />
-                                    Add Host
+                                <button type="submit" disabled={isSubmitting} className="glass-button w-full py-3 rounded-xl font-bold flex items-center justify-center gap-2 mt-4 disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500">
+                                    {isSubmitting ? (
+                                        <>
+                                            <Loader2 className="w-5 h-5 animate-spin" aria-hidden="true" />
+                                            Adding Host...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Plus className="w-5 h-5" aria-hidden="true" />
+                                            Add Host
+                                        </>
+                                    )}
                                 </button>
                             </form>
                         </div>
@@ -164,8 +177,23 @@ const HostManager = ({ onHostAdded, hosts, onHostDeleted }) => {
                         <tbody className="divide-y divide-slate-700/50">
                             {hosts.length === 0 ? (
                                 <tr>
-                                    <td colSpan="6" className="p-8 text-center text-slate-500">
-                                        No hosts added yet. Click "Add Host" to start monitoring.
+                                    <td colSpan="6" className="p-12">
+                                        <div className="flex flex-col items-center justify-center space-y-4">
+                                            <div className="w-16 h-16 rounded-2xl bg-blue-500/10 flex items-center justify-center">
+                                                <Globe className="w-8 h-8 text-blue-400" aria-hidden="true" />
+                                            </div>
+                                            <div className="text-center">
+                                                <h3 className="text-xl font-bold text-white mb-1">No hosts found</h3>
+                                                <p className="text-slate-400 text-sm max-w-sm">You haven't added any hosts to monitor yet. Get started by adding your first host.</p>
+                                            </div>
+                                            <button
+                                                onClick={() => setShowAddPanel(true)}
+                                                className="glass-button px-6 py-2.5 rounded-xl font-medium flex items-center gap-2 mt-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                                            >
+                                                <Plus className="w-5 h-5" aria-hidden="true" />
+                                                Add First Host
+                                            </button>
+                                        </div>
                                     </td>
                                 </tr>
                             ) : (
