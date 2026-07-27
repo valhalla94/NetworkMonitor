@@ -1,10 +1,9 @@
 import asyncio
 import json
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Request
-from sqlalchemy import func
 from sqlalchemy.orm import Session
 from sse_starlette.sse import EventSourceResponse
 
@@ -24,35 +23,13 @@ router = APIRouter(tags=["Status & Events"])
 def get_network_status(
     db: Session = Depends(get_db), current_user: auth.User = Depends(get_current_user)
 ):
-    hosts = db.query(models.HostDB).filter(models.HostDB.enabled == True).all()
-    cutoff = datetime.utcnow() - timedelta(minutes=5)
-
-    host_ids = [h.id for h in hosts]
-    latest_pings = {}
-    if host_ids:
-        latest_pings_subq = (
-            db.query(
-                models.PingResultDB.host_id,
-                func.max(models.PingResultDB.timestamp).label("max_timestamp"),
-            )
-            .filter(
-                models.PingResultDB.host_id.in_(host_ids),
-                models.PingResultDB.timestamp >= cutoff,
-            )
-            .group_by(models.PingResultDB.host_id)
-            .subquery()
-        )
-
-        latest_pings_query = db.query(
-            models.PingResultDB.host_id, models.PingResultDB.latency
-        ).join(
-            latest_pings_subq,
-            (models.PingResultDB.host_id == latest_pings_subq.c.host_id)
-            & (models.PingResultDB.timestamp == latest_pings_subq.c.max_timestamp),
-        )
-
-        latest_pings_list = latest_pings_query.all()
-        latest_pings = {host_id: latency for host_id, latency in latest_pings_list}
+    # ⚡ Bolt: Fetch only needed columns directly from HostDB to avoid expensive PingResultDB joins
+    # HostDB already caches last_status and average_latency via the scheduler.
+    hosts = db.query(
+        models.HostDB.id,
+        models.HostDB.last_status,
+        models.HostDB.average_latency
+    ).filter(models.HostDB.enabled == True).all()
 
     total_hosts = 0
     reachable_hosts = 0
@@ -61,11 +38,11 @@ def get_network_status(
 
     for host in hosts:
         total_hosts += 1
-        last_latency = latest_pings.get(host.id)
-        if last_latency is not None:
+        if host.last_status == "UP":
             reachable_hosts += 1
-            total_latency += last_latency
-            latency_count += 1
+            if host.average_latency is not None:
+                total_latency += host.average_latency
+                latency_count += 1
 
     if total_hosts == 0:
         return {"status": "UNKNOWN", "details": "No data", "global_avg_latency": 0}
