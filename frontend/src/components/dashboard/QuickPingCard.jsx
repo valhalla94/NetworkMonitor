@@ -11,10 +11,10 @@ const QuickPingCard = ({
     return (
         <div className="glass-panel p-6 rounded-2xl border-l-4 border-l-amber-500 bg-amber-900/10 relative overflow-hidden">
             <div className="absolute top-0 right-0 p-4 opacity-10 pointer-events-none">
-                <Search className="w-20 h-20 text-amber-400" />
+                <Search className="w-20 h-20 text-amber-400" aria-hidden="true" />
             </div>
             <div className="flex items-center gap-3 mb-4">
-                <div className="p-2 rounded-full bg-amber-500/20 text-amber-400"><Search className="w-5 h-5" /></div>
+                <div className="p-2 rounded-full bg-amber-500/20 text-amber-400"><Search className="w-5 h-5" aria-hidden="true" /></div>
                 <h2 className="text-lg font-bold text-white">Quick Ping</h2>
             </div>
             <form onSubmit={onSubmitPing} className="flex gap-2 mb-4">
@@ -22,7 +22,8 @@ const QuickPingCard = ({
                     placeholder="IP or Hostname" disabled={loading} aria-label="Quick ping target IP or hostname"
                     className="flex-1 bg-slate-800/50 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-amber-500 focus-visible:ring-1 focus-visible:ring-amber-500 transition-colors disabled:opacity-50" />
                 <button type="submit" disabled={loading || !target}
-                    aria-label="Execute quick ping" title="Execute quick ping"
+                    aria-label={loading ? "Executing quick ping" : "Execute quick ping"}
+                    title={loading ? "Executing quick ping" : "Execute quick ping"}
                     className="bg-amber-600 hover:bg-amber-500 disabled:opacity-50 text-white px-3 py-2 rounded-lg transition-all flex items-center gap-1.5 font-medium cursor-pointer text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400">
                     {loading ? <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" /> : <Play className="w-4 h-4 fill-current" aria-hidden="true" />}
                 </button>
