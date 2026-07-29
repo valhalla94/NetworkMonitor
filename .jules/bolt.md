@@ -29,3 +29,7 @@
 ## 2024-02-14 - Optimize Fetching Global Network Status
 **Learning:** Found a performance bottleneck where the application queried and joined the large `PingResultDB` table just to calculate `reachable_hosts`, `total_hosts`, and `global_avg_latency` on the high-traffic `/status` endpoint. Since `last_status` and `average_latency` are already pre-calculated and cached on the `HostDB` by the background scheduler, querying `PingResultDB` directly was redundant.
 **Action:** Always verify if needed computed values are already cached on the parent model before performing expensive aggregations on time-series tables. Fetching only specific columns from `HostDB` reduces latency and database read time significantly.
+
+## 2024-12-05 - Optimize fetching data for high-frequency SSE payload
+**Learning:** Found a performance bottleneck where the `_get_sse_data` function fetched the entire `HostDB` ORM models on every single call (which happens every 5 seconds for each connected client), just to extract a subset of fields. SQLAlchemy ORM instantiation overhead is significant in high-frequency loops.
+**Action:** When a high-frequency polling endpoint or SSE generator only needs specific fields, use SQLAlchemy's `db.query(Model.col1, Model.col2)` instead of `db.query(Model)`. This returns lightweight tuples directly instead of instantiating heavy ORM objects, significantly reducing memory allocation, GC pressure, and CPU overhead.
