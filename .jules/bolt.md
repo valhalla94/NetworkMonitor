@@ -29,3 +29,7 @@
 ## 2024-02-14 - Optimize Fetching Global Network Status
 **Learning:** Found a performance bottleneck where the application queried and joined the large `PingResultDB` table just to calculate `reachable_hosts`, `total_hosts`, and `global_avg_latency` on the high-traffic `/status` endpoint. Since `last_status` and `average_latency` are already pre-calculated and cached on the `HostDB` by the background scheduler, querying `PingResultDB` directly was redundant.
 **Action:** Always verify if needed computed values are already cached on the parent model before performing expensive aggregations on time-series tables. Fetching only specific columns from `HostDB` reduces latency and database read time significantly.
+
+## 2026-07-30 - Optimize HostManager DOM Updates
+**Learning:** Found a performance bottleneck where `HostManager.jsx` re-rendered the entire O(N) list of host DOM nodes on unrelated state changes, such as typing in the "Add Host" form or editing a single host. By extracting the row rendering logic into a `HostRow` component wrapped in `React.memo` and passing stable callback references using `useCallback` for `handleDelete` and `startEdit`, React can effectively skip re-rendering the unchanged list items.
+**Action:** To prevent O(N) DOM re-renders in React when unrelated state changes, avoid inline mapping of complex elements in large lists. Instead, extract the individual list item rendering logic into separate components wrapped with `React.memo`.
