@@ -431,7 +431,18 @@ const Dashboard = () => {
             ))}
 
             {filteredHosts.length === 0 && hosts.length > 0 && (
-                <div className="text-center text-slate-500 py-12">No hosts match your search/filter.</div>
+                <div className="text-center text-slate-500 py-12">
+                    <p className="mb-4">No hosts match your search/filter.</p>
+                    <button
+                        onClick={() => {
+                            setSearchQuery('');
+                            setStatusFilter('all');
+                        }}
+                        className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                    >
+                        Clear Filters
+                    </button>
+                </div>
             )}
 
             {/* Chart + IP History */}
