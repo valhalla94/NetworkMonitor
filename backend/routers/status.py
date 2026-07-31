@@ -62,7 +62,23 @@ def _get_sse_data():
     """Sync helper — runs in executor to avoid blocking event loop."""
     db = database.SessionLocal()
     try:
-        hosts = db.query(models.HostDB).filter(models.HostDB.enabled == True).all()
+        # ⚡ Bolt: Fetch only the specific columns needed for the SSE payload
+        # This prevents full ORM model instantiation in a high-frequency execution path (called every 5s per client)
+        hosts = db.query(
+            models.HostDB.id,
+            models.HostDB.name,
+            models.HostDB.last_status,
+            models.HostDB.average_latency,
+            models.HostDB.maintenance,
+            models.HostDB.enabled,
+            models.HostDB.group_name,
+            models.HostDB.ip_address,
+            models.HostDB.monitor_type,
+            models.HostDB.port,
+            models.HostDB.ssl_monitor,
+            models.HostDB.ssl_expiry_days,
+            models.HostDB.latency_threshold_ms,
+        ).filter(models.HostDB.enabled == True).all()
 
         host_list = []
         for h in hosts:
@@ -80,7 +96,7 @@ def _get_sse_data():
                     "port": h.port,
                     "ssl_monitor": h.ssl_monitor,
                     "ssl_expiry_days": h.ssl_expiry_days,
-                    "latency_threshold_ms": getattr(h, "latency_threshold_ms", None),
+                    "latency_threshold_ms": h.latency_threshold_ms,
                 }
             )
         return host_list
