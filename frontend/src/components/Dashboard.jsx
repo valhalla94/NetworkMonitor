@@ -12,7 +12,7 @@ const API_URL = import.meta.env.VITE_API_URL || '/api';
 
 // ⚡ Bolt: Memoized HostCard prevents unnecessary re-renders of list items when irrelevant parent state changes
 const HostCard = React.memo(({ host, isSelected, onSelect }) => (
-    <button type="button" onClick={() => onSelect(host)} aria-label={`Select host ${host.name}`}
+    <button type="button" onClick={() => onSelect(host)} aria-label={`Select host ${host.name}`} aria-pressed={isSelected}
         className={`w-full text-left glass-panel p-5 rounded-2xl cursor-pointer transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl group relative overflow-hidden focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${isSelected ? 'ring-2 ring-blue-500/50 bg-slate-800/60' : 'hover:bg-slate-800/60'}`}>
         {host.maintenance && (
             <div className="absolute top-0 right-0 bg-amber-500/90 text-slate-900 text-[10px] font-bold px-4 py-1 rotate-45 translate-x-3 translate-y-2 shadow-lg z-10 w-24 text-center">MAINT</div>
@@ -20,7 +20,7 @@ const HostCard = React.memo(({ host, isSelected, onSelect }) => (
         <div className={`flex items-center justify-between ${host.maintenance ? 'opacity-70' : ''}`}>
             <div className="flex items-center space-x-3">
                 <div className={`p-2.5 rounded-xl ${host.maintenance ? 'bg-amber-500/10 text-amber-400' : 'bg-blue-500/10 text-blue-400 group-hover:bg-blue-500/20'}`}>
-                    <Server className="w-5 h-5" />
+                    <Server className="w-5 h-5" aria-hidden="true" />
                 </div>
                 <div>
                     <h3 className="font-bold text-white group-hover:text-blue-400 transition-colors">{host.name}</h3>
@@ -353,10 +353,10 @@ const Dashboard = () => {
                 {/* Network Health Card */}
                 <div className="glass-panel p-6 rounded-2xl border-l-4 border-l-cyan-500 bg-cyan-900/10 relative overflow-hidden">
                     <div className="absolute top-0 right-0 p-4 opacity-10 pointer-events-none">
-                        <Zap className="w-20 h-20 text-cyan-400" />
+                        <Zap className="w-20 h-20 text-cyan-400" aria-hidden="true" />
                     </div>
                     <div className="flex items-center gap-3 mb-4">
-                        <div className="p-2 rounded-full bg-cyan-500/20 text-cyan-400"><Zap className="w-5 h-5" /></div>
+                        <div className="p-2 rounded-full bg-cyan-500/20 text-cyan-400"><Zap className="w-5 h-5" aria-hidden="true" /></div>
                         <h2 className="text-lg font-bold text-white">Network Health</h2>
                     </div>
                     <div className="text-sm text-slate-400 mb-1">Global Avg Latency</div>
@@ -372,7 +372,7 @@ const Dashboard = () => {
             {/* Search + Filter bar */}
             <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
                 <div className="relative flex-1">
-                    <Search className="absolute left-3 top-2.5 w-4 h-4 text-slate-500" />
+                    <Search className="absolute left-3 top-2.5 w-4 h-4 text-slate-500" aria-hidden="true" />
                     <input
                         type="text"
                         value={searchQuery}
@@ -388,7 +388,7 @@ const Dashboard = () => {
                             aria-label="Clear search"
                             className="absolute right-3 top-2.5 text-slate-500 hover:text-slate-300 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded p-0.5"
                         >
-                            <X className="w-4 h-4" />
+                            <X className="w-4 h-4" aria-hidden="true" />
                         </button>
                     )}
                 </div>
@@ -413,7 +413,7 @@ const Dashboard = () => {
             {groupNames.map(groupName => (
                 <div key={groupName} className="mb-4">
                     <div className="flex items-center gap-2 mb-4">
-                        <Folder className="w-5 h-5 text-slate-400" />
+                        <Folder className="w-5 h-5 text-slate-400" aria-hidden="true" />
                         <h3 className="text-xl font-bold text-white capitalize">{groupName}</h3>
                         <span className="text-sm text-slate-500 bg-slate-800 px-2 py-0.5 rounded-full">{groups[groupName].length}</span>
                     </div>
@@ -458,7 +458,7 @@ const Dashboard = () => {
                         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
                             <div>
                                 <h2 className="text-xl md:text-2xl font-bold flex items-center gap-3 text-white">
-                                    <Activity className="text-blue-400 w-5 h-5" />
+                                    <Activity className="text-blue-400 w-5 h-5" aria-hidden="true" />
                                     {selectedHost.name}
                                 </h2>
                                 <p className="text-slate-400 mt-1 flex flex-wrap items-center gap-2 text-sm">
@@ -479,7 +479,7 @@ const Dashboard = () => {
                                 </button>
                                 <button onClick={handleExportCSV}
                                     className="px-3 py-1.5 rounded-lg text-xs font-medium text-slate-400 hover:text-white bg-slate-800/50 flex items-center gap-1.5 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400">
-                                    <Download className="w-3.5 h-3.5" />CSV
+                                    <Download className="w-3.5 h-3.5" aria-hidden="true" />CSV
                                 </button>
                                 <div className="flex items-center gap-1 bg-slate-900/50 p-1 rounded-xl border border-slate-700/50">
                                     {['-1h', '-6h', '-24h', '-7d', '-30d', '-1y', '-2y'].map(v => (
@@ -531,7 +531,7 @@ const Dashboard = () => {
                 {/* IP History */}
                 <div className="glass-panel p-6 rounded-2xl flex flex-col" style={{ maxHeight: 500 }}>
                     <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
-                        <Clock className="w-5 h-5 text-blue-400" />
+                        <Clock className="w-5 h-5 text-blue-400" aria-hidden="true" />
                         IP History
                     </h3>
                     <div className="overflow-y-auto flex-1 pr-1 space-y-2 custom-scrollbar">
