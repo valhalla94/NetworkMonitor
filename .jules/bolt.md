@@ -33,3 +33,7 @@
 ## 2024-12-05 - Optimize fetching data for high-frequency SSE payload
 **Learning:** Found a performance bottleneck where the `_get_sse_data` function fetched the entire `HostDB` ORM models on every single call (which happens every 5 seconds for each connected client), just to extract a subset of fields. SQLAlchemy ORM instantiation overhead is significant in high-frequency loops.
 **Action:** When a high-frequency polling endpoint or SSE generator only needs specific fields, use SQLAlchemy's `db.query(Model.col1, Model.col2)` instead of `db.query(Model)`. This returns lightweight tuples directly instead of instantiating heavy ORM objects, significantly reducing memory allocation, GC pressure, and CPU overhead.
+
+## 2025-02-14 - Optimize passing callbacks to memoized child components
+**Learning:** Found a performance bottleneck where components like `SpeedTestCard` and `QuickPingCard`, despite being wrapped in `React.memo`, were being unnecessarily re-rendered every time the parent `Dashboard` component updated (e.g., on every 5-second SSE event). This happened because unmemoized callback functions (`handleRunSpeedTest` and `handleQuickPing`) were passed as props, creating new references on every render and breaking the shallow equality check of `React.memo`.
+**Action:** When passing callback functions as props to memoized child components (`React.memo`), ensure those functions are wrapped in `useCallback` (or use raw state setters) to maintain stable references across parent re-renders.

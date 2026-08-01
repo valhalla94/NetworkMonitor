@@ -96,14 +96,15 @@ const Dashboard = () => {
         }
     };
 
-    const fetchSpeedTestHistory = async () => {
+    // ⚡ Bolt: Memoized to prevent child re-renders on frequent SSE updates
+    const fetchSpeedTestHistory = useCallback(async () => {
         try {
             const response = await getSpeedTestHistory();
             setSpeedTestHistory(response.data);
         } catch (error) {
             console.error('Error fetching speedtest history:', error);
         }
-    };
+    }, []);
 
     // SSE connection for real-time host updates
     useEffect(() => {
@@ -191,7 +192,7 @@ const Dashboard = () => {
             clearInterval(ipInterval);
             clearInterval(speedInterval);
         };
-    }, [fetchHosts]);
+    }, [fetchHosts, fetchSpeedTestHistory]);
 
     useEffect(() => {
         if (publicIpHistory.length > 0) {
@@ -247,7 +248,8 @@ const Dashboard = () => {
         }
     }, [selectedHost, showUptimeChart, fetchUptimeHistory]);
 
-    const handleRunSpeedTest = async () => {
+    // ⚡ Bolt: Memoized to prevent SpeedTestCard from re-rendering
+    const handleRunSpeedTest = useCallback(async () => {
         setIsSpeedTestRunning(true);
         try {
             await runSpeedTest();
@@ -260,9 +262,10 @@ const Dashboard = () => {
             alert('Failed to start speed test');
             setIsSpeedTestRunning(false);
         }
-    };
+    }, [fetchSpeedTestHistory]);
 
-    const handleQuickPing = async (e) => {
+    // ⚡ Bolt: Memoized to prevent QuickPingCard from re-rendering
+    const handleQuickPing = useCallback(async (e) => {
         e.preventDefault();
         if (!quickPingTarget) return;
         setQuickPingLoading(true);
@@ -275,7 +278,7 @@ const Dashboard = () => {
         } finally {
             setQuickPingLoading(false);
         }
-    };
+    }, [quickPingTarget]);
 
     const handleExportCSV = () => {
         if (!selectedHost) return;
