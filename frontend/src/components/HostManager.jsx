@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { createHost, updateHost, deleteHost } from '../api';
 import HostFormFields from './HostFormFields';
 import { Plus, Trash2, Globe, Clock, Edit2, X, Check, AlertTriangle, Heart, Loader2 } from 'lucide-react';
@@ -22,6 +22,93 @@ const DEFAULT_FORM = {
     maintenance_end: '',
 };
 
+
+// ⚡ Bolt: Memoized HostRow prevents unnecessary re-renders of list items when irrelevant parent state changes
+const HostRow = React.memo(({ host, isEditing, editForm, setEditForm, onSave, onCancel, onEdit, onDelete }) => {
+    return (
+        <tr className="hover:bg-slate-800/30 transition-colors">
+            {isEditing ? (
+                <>
+                    <td className="p-3" colSpan="4">
+                        <HostFormFields f={editForm} setF={setEditForm} compact />
+                    </td>
+                    <td className="p-3" />
+                    <td className="p-3 text-right align-top">
+                        <div className="flex gap-2 justify-end">
+                            <button onClick={() => onSave(host.id)}
+                                aria-label="Save Edit"
+                                className="p-2 text-emerald-400 hover:bg-emerald-500/10 rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500" title="Save">
+                                <Check className="w-5 h-5" />
+                            </button>
+                            <button onClick={onCancel}
+                                aria-label="Cancel Edit"
+                                className="p-2 text-slate-400 hover:bg-slate-500/10 rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400" title="Cancel">
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+                    </td>
+                </>
+            ) : (
+                <>
+                    <td className="p-4 font-medium text-white">
+                        {host.name}
+                        {host.maintenance && (
+                            <span className="ml-2 px-1.5 py-0.5 text-[10px] bg-amber-500/20 text-amber-400 rounded border border-amber-500/30">MAINT</span>
+                        )}
+                        {host.latency_threshold_ms && (
+                            <span className="ml-2 px-1.5 py-0.5 text-[10px] bg-orange-500/10 text-orange-400 rounded border border-orange-500/20">
+                                ⚡{host.latency_threshold_ms}ms
+                            </span>
+                        )}
+                    </td>
+                    <td className="p-4 text-slate-300 font-mono text-sm">{host.ip_address}</td>
+                    <td className="p-4 text-slate-300 text-sm">{host.group_name || '-'}</td>
+                    <td className="p-4 text-slate-300">
+                        <span className={`px-2 py-1 rounded-md text-xs font-bold ${
+                            host.monitor_type === 'http' ? 'bg-purple-500/20 text-purple-400' :
+                            host.monitor_type === 'tcp' ? 'bg-orange-500/20 text-orange-400' :
+                            host.monitor_type === 'heartbeat' ? 'bg-pink-500/20 text-pink-400' :
+                            'bg-blue-500/20 text-blue-400'
+                        }`}>
+                            {host.monitor_type === 'tcp' ? `TCP:${host.port}` :
+                             host.monitor_type === 'heartbeat' ? '💓 HB' :
+                             host.monitor_type?.toUpperCase() || 'ICMP'}
+                        </span>
+                        {host.ssl_monitor && host.ssl_expiry_days !== null && (
+                            <div className="mt-1">
+                                <span className={`px-2 py-0.5 rounded text-[10px] font-bold border ${
+                                    host.ssl_expiry_days > 30 ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
+                                    host.ssl_expiry_days > 7 ? 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20' :
+                                    'bg-red-500/10 text-red-400 border-red-500/20'
+                                }`}>
+                                    SSL: {host.ssl_expiry_days}d
+                                </span>
+                            </div>
+                        )}
+                    </td>
+                    <td className="p-4 text-slate-300">
+                        {host.monitor_type === 'heartbeat' ? `${host.heartbeat_interval || '?'}s` : `${host.interval}s`}
+                    </td>
+                    <td className="p-4 text-right">
+                        <div className="flex gap-2 justify-end">
+                            <button onClick={() => onEdit(host)}
+                                aria-label="Edit Host"
+                                className="p-2 text-blue-400 hover:bg-blue-500/10 rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500" title="Edit">
+                                <Edit2 className="w-5 h-5" />
+                            </button>
+                            <button onClick={() => onDelete(host.id)}
+                                aria-label="Delete Host"
+                                className="p-2 text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-500" title="Delete">
+                                <Trash2 className="w-5 h-5" />
+                            </button>
+                        </div>
+                    </td>
+                </>
+            )}
+        </tr>
+    );
+});
+
 const HostManager = ({ onHostAdded, hosts, onHostDeleted }) => {
     const [form, setForm] = useState(DEFAULT_FORM);
     const [editingHost, setEditingHost] = useState(null);
@@ -29,7 +116,7 @@ const HostManager = ({ onHostAdded, hosts, onHostDeleted }) => {
     const [showAddPanel, setShowAddPanel] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
-    const buildPayload = (f) => ({
+    const buildPayload = useCallback((f) => ({
         name: f.name,
         ip_address: f.ip_address,
         port: f.port ? parseInt(f.port) : null,
@@ -45,7 +132,7 @@ const HostManager = ({ onHostAdded, hosts, onHostDeleted }) => {
         heartbeat_interval: f.heartbeat_interval ? parseInt(f.heartbeat_interval) : null,
         maintenance_start: f.maintenance_start || null,
         maintenance_end: f.maintenance_end || null,
-    });
+    }), []);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -63,7 +150,7 @@ const HostManager = ({ onHostAdded, hosts, onHostDeleted }) => {
         }
     };
 
-    const handleDelete = async (id) => {
+    const handleDelete = useCallback(async (id) => {
         if (window.confirm('Delete this host?')) {
             try {
                 await deleteHost(id);
@@ -72,9 +159,9 @@ const HostManager = ({ onHostAdded, hosts, onHostDeleted }) => {
                 console.error('Error deleting host:', error);
             }
         }
-    };
+    }, [onHostDeleted]);
 
-    const startEdit = (host) => {
+    const startEdit = useCallback((host) => {
         setEditingHost(host.id);
         setEditForm({
             name: host.name,
@@ -93,9 +180,9 @@ const HostManager = ({ onHostAdded, hosts, onHostDeleted }) => {
             maintenance_start: host.maintenance_start ? host.maintenance_start.slice(0, 16) : '',
             maintenance_end: host.maintenance_end ? host.maintenance_end.slice(0, 16) : '',
         });
-    };
+    }, []);
 
-    const saveEdit = async (hostId) => {
+    const saveEdit = useCallback(async (hostId) => {
         try {
             await updateHost(hostId, buildPayload(editForm));
             setEditingHost(null);
@@ -104,7 +191,11 @@ const HostManager = ({ onHostAdded, hosts, onHostDeleted }) => {
             console.error('Error updating host:', error);
             alert('Failed to update host');
         }
-    };
+    }, [editForm, onHostAdded, buildPayload]);
+
+    const cancelEdit = useCallback(() => {
+        setEditingHost(null);
+    }, []);
 
     return (
         <div className="space-y-6">
@@ -197,88 +288,22 @@ const HostManager = ({ onHostAdded, hosts, onHostDeleted }) => {
                                     </td>
                                 </tr>
                             ) : (
-                                hosts.map((host) => (
-                                    <tr key={host.id} className="hover:bg-slate-800/30 transition-colors">
-                                        {editingHost === host.id ? (
-                                            <>
-                                                <td className="p-3" colSpan="4">
-                                                    <HostFormFields f={editForm} setF={setEditForm} compact />
-                                                </td>
-                                                <td className="p-3" />
-                                                <td className="p-3 text-right align-top">
-                                                    <div className="flex gap-2 justify-end">
-                                                        <button onClick={() => saveEdit(host.id)}
-                                                            aria-label="Save Edit"
-                                                            className="p-2 text-emerald-400 hover:bg-emerald-500/10 rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500" title="Save">
-                                                            <Check className="w-5 h-5" />
-                                                        </button>
-                                                        <button onClick={() => setEditingHost(null)}
-                                                            aria-label="Cancel Edit"
-                                                            className="p-2 text-slate-400 hover:bg-slate-500/10 rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400" title="Cancel">
-                                                            <X className="w-5 h-5" />
-                                                        </button>
-                                                    </div>
-                                                </td>
-                                            </>
-                                        ) : (
-                                            <>
-                                                <td className="p-4 font-medium text-white">
-                                                    {host.name}
-                                                    {host.maintenance && (
-                                                        <span className="ml-2 px-1.5 py-0.5 text-[10px] bg-amber-500/20 text-amber-400 rounded border border-amber-500/30">MAINT</span>
-                                                    )}
-                                                    {host.latency_threshold_ms && (
-                                                        <span className="ml-2 px-1.5 py-0.5 text-[10px] bg-orange-500/10 text-orange-400 rounded border border-orange-500/20">
-                                                            ⚡{host.latency_threshold_ms}ms
-                                                        </span>
-                                                    )}
-                                                </td>
-                                                <td className="p-4 text-slate-300 font-mono text-sm">{host.ip_address}</td>
-                                                <td className="p-4 text-slate-300 text-sm">{host.group_name || '-'}</td>
-                                                <td className="p-4 text-slate-300">
-                                                    <span className={`px-2 py-1 rounded-md text-xs font-bold ${
-                                                        host.monitor_type === 'http' ? 'bg-purple-500/20 text-purple-400' :
-                                                        host.monitor_type === 'tcp' ? 'bg-orange-500/20 text-orange-400' :
-                                                        host.monitor_type === 'heartbeat' ? 'bg-pink-500/20 text-pink-400' :
-                                                        'bg-blue-500/20 text-blue-400'
-                                                    }`}>
-                                                        {host.monitor_type === 'tcp' ? `TCP:${host.port}` :
-                                                         host.monitor_type === 'heartbeat' ? '💓 HB' :
-                                                         host.monitor_type?.toUpperCase() || 'ICMP'}
-                                                    </span>
-                                                    {host.ssl_monitor && host.ssl_expiry_days !== null && (
-                                                        <div className="mt-1">
-                                                            <span className={`px-2 py-0.5 rounded text-[10px] font-bold border ${
-                                                                host.ssl_expiry_days > 30 ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
-                                                                host.ssl_expiry_days > 7 ? 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20' :
-                                                                'bg-red-500/10 text-red-400 border-red-500/20'
-                                                            }`}>
-                                                                SSL: {host.ssl_expiry_days}d
-                                                            </span>
-                                                        </div>
-                                                    )}
-                                                </td>
-                                                <td className="p-4 text-slate-300">
-                                                    {host.monitor_type === 'heartbeat' ? `${host.heartbeat_interval || '?'}s` : `${host.interval}s`}
-                                                </td>
-                                                <td className="p-4 text-right">
-                                                    <div className="flex gap-2 justify-end">
-                                                        <button onClick={() => startEdit(host)}
-                                                            aria-label="Edit Host"
-                                                            className="p-2 text-blue-400 hover:bg-blue-500/10 rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500" title="Edit">
-                                                            <Edit2 className="w-5 h-5" />
-                                                        </button>
-                                                        <button onClick={() => handleDelete(host.id)}
-                                                            aria-label="Delete Host"
-                                                            className="p-2 text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-500" title="Delete">
-                                                            <Trash2 className="w-5 h-5" />
-                                                        </button>
-                                                    </div>
-                                                </td>
-                                            </>
-                                        )}
-                                    </tr>
-                                ))
+                                hosts.map((host) => {
+                                    const isEditing = editingHost === host.id;
+                                    return (
+                                        <HostRow
+                                            key={host.id}
+                                            host={host}
+                                            isEditing={isEditing}
+                                            editForm={isEditing ? editForm : null}
+                                            setEditForm={isEditing ? setEditForm : null}
+                                            onSave={isEditing ? saveEdit : null}
+                                            onCancel={isEditing ? cancelEdit : null}
+                                            onEdit={startEdit}
+                                            onDelete={handleDelete}
+                                        />
+                                    );
+                                })
                             )}
                         </tbody>
                     </table>
