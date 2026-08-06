@@ -20,7 +20,7 @@ const HostCard = React.memo(({ host, isSelected, onSelect }) => (
         <div className={`flex items-center justify-between ${host.maintenance ? 'opacity-70' : ''}`}>
             <div className="flex items-center space-x-3">
                 <div className={`p-2.5 rounded-xl ${host.maintenance ? 'bg-amber-500/10 text-amber-400' : 'bg-blue-500/10 text-blue-400 group-hover:bg-blue-500/20'}`}>
-                    <Server className="w-5 h-5" />
+                    <Server className="w-5 h-5" aria-hidden="true" />
                 </div>
                 <div>
                     <h3 className="font-bold text-white group-hover:text-blue-400 transition-colors">{host.name}</h3>
@@ -32,7 +32,7 @@ const HostCard = React.memo(({ host, isSelected, onSelect }) => (
                         {host.monitor_type === 'tcp' && <span className="text-[10px] px-1.5 py-0.5 rounded bg-orange-500/10 text-orange-400 border border-orange-500/20">TCP:{host.port}</span>}
                         {host.monitor_type === 'http' && <span className="text-[10px] px-1.5 py-0.5 rounded bg-purple-500/10 text-purple-400 border border-purple-500/20">HTTP</span>}
                         {host.monitor_type === 'heartbeat' && <span className="text-[10px] px-1.5 py-0.5 rounded bg-pink-500/10 text-pink-400 border border-pink-500/20">💓 HB</span>}
-                        {host.ssl_monitor && <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center gap-0.5"><Lock className="w-2.5 h-2.5" />SSL</span>}
+                        {host.ssl_monitor && <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center gap-0.5"><Lock className="w-2.5 h-2.5" aria-hidden="true" />SSL</span>}
                         {host.latency_threshold_ms && <span className="text-[10px] px-1.5 py-0.5 rounded bg-orange-500/10 text-orange-400 border border-orange-500/20">⚡{host.latency_threshold_ms}ms</span>}
                     </div>
                 </div>
@@ -372,7 +372,7 @@ const Dashboard = () => {
             {/* Search + Filter bar */}
             <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
                 <div className="relative flex-1">
-                    <Search className="absolute left-3 top-2.5 w-4 h-4 text-slate-500" />
+                    <Search className="absolute left-3 top-2.5 w-4 h-4 text-slate-500" aria-hidden="true" />
                     <input
                         type="text"
                         value={searchQuery}
@@ -388,7 +388,7 @@ const Dashboard = () => {
                             aria-label="Clear search"
                             className="absolute right-3 top-2.5 text-slate-500 hover:text-slate-300 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded p-0.5"
                         >
-                            <X className="w-4 h-4" />
+                            <X className="w-4 h-4" aria-hidden="true" />
                         </button>
                     )}
                 </div>
@@ -413,7 +413,7 @@ const Dashboard = () => {
             {groupNames.map(groupName => (
                 <div key={groupName} className="mb-4">
                     <div className="flex items-center gap-2 mb-4">
-                        <Folder className="w-5 h-5 text-slate-400" />
+                        <Folder className="w-5 h-5 text-slate-400" aria-hidden="true" />
                         <h3 className="text-xl font-bold text-white capitalize">{groupName}</h3>
                         <span className="text-sm text-slate-500 bg-slate-800 px-2 py-0.5 rounded-full">{groups[groupName].length}</span>
                     </div>
@@ -458,7 +458,7 @@ const Dashboard = () => {
                         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
                             <div>
                                 <h2 className="text-xl md:text-2xl font-bold flex items-center gap-3 text-white">
-                                    <Activity className="text-blue-400 w-5 h-5" />
+                                    <Activity className="text-blue-400 w-5 h-5" aria-hidden="true" />
                                     {selectedHost.name}
                                 </h2>
                                 <p className="text-slate-400 mt-1 flex flex-wrap items-center gap-2 text-sm">
@@ -479,7 +479,7 @@ const Dashboard = () => {
                                 </button>
                                 <button onClick={handleExportCSV}
                                     className="px-3 py-1.5 rounded-lg text-xs font-medium text-slate-400 hover:text-white bg-slate-800/50 flex items-center gap-1.5 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400">
-                                    <Download className="w-3.5 h-3.5" />CSV
+                                    <Download className="w-3.5 h-3.5" aria-hidden="true" />CSV
                                 </button>
                                 <div className="flex items-center gap-1 bg-slate-900/50 p-1 rounded-xl border border-slate-700/50">
                                     {['-1h', '-6h', '-24h', '-7d', '-30d', '-1y', '-2y'].map(v => (
@@ -531,7 +531,7 @@ const Dashboard = () => {
                 {/* IP History */}
                 <div className="glass-panel p-6 rounded-2xl flex flex-col" style={{ maxHeight: 500 }}>
                     <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
-                        <Clock className="w-5 h-5 text-blue-400" />
+                        <Clock className="w-5 h-5 text-blue-400" aria-hidden="true" />
                         IP History
                     </h3>
                     <div className="overflow-y-auto flex-1 pr-1 space-y-2 custom-scrollbar">
