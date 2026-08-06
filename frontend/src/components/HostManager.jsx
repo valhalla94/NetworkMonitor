@@ -210,12 +210,12 @@ const HostManager = ({ onHostAdded, hosts, onHostDeleted }) => {
                                                         <button onClick={() => saveEdit(host.id)}
                                                             aria-label="Save Edit"
                                                             className="p-2 text-emerald-400 hover:bg-emerald-500/10 rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500" title="Save">
-                                                            <Check className="w-5 h-5" />
+                                                            <Check className="w-5 h-5" aria-hidden="true" />
                                                         </button>
                                                         <button onClick={() => setEditingHost(null)}
                                                             aria-label="Cancel Edit"
                                                             className="p-2 text-slate-400 hover:bg-slate-500/10 rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400" title="Cancel">
-                                                            <X className="w-5 h-5" />
+                                                            <X className="w-5 h-5" aria-hidden="true" />
                                                         </button>
                                                     </div>
                                                 </td>
@@ -266,12 +266,12 @@ const HostManager = ({ onHostAdded, hosts, onHostDeleted }) => {
                                                         <button onClick={() => startEdit(host)}
                                                             aria-label="Edit Host"
                                                             className="p-2 text-blue-400 hover:bg-blue-500/10 rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500" title="Edit">
-                                                            <Edit2 className="w-5 h-5" />
+                                                            <Edit2 className="w-5 h-5" aria-hidden="true" />
                                                         </button>
                                                         <button onClick={() => handleDelete(host.id)}
                                                             aria-label="Delete Host"
                                                             className="p-2 text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-500" title="Delete">
-                                                            <Trash2 className="w-5 h-5" />
+                                                            <Trash2 className="w-5 h-5" aria-hidden="true" />
                                                         </button>
                                                     </div>
                                                 </td>

@@ -12,7 +12,7 @@ const HostFormFields = ({ f, setF, compact = false }) => {
             <div className="col-span-2 space-y-1">
                 <label htmlFor={`${idPrefix}-name`} className="text-xs font-medium text-slate-400">Host Name *</label>
                 <div className="relative">
-                    <Globe className="absolute left-3 top-2.5 w-4 h-4 text-slate-500" />
+                    <Globe className="absolute left-3 top-2.5 w-4 h-4 text-slate-500" aria-hidden="true" />
                     <input id={`${idPrefix}-name`} name="name" type="text" placeholder="e.g. Google DNS" value={f.name}
                         onChange={setField(setF)} required
                         className="glass-input w-full pl-9 pr-3 py-2 rounded-lg outline-none text-sm" />
@@ -93,7 +93,7 @@ const HostFormFields = ({ f, setF, compact = false }) => {
             {f.monitor_type !== 'heartbeat' && (
                 <div className="space-y-1">
                     <label htmlFor={`${idPrefix}-interval`} className="text-xs font-medium text-slate-400">
-                        <Clock className="inline w-3 h-3 mr-1" />
+                        <Clock className="inline w-3 h-3 mr-1" aria-hidden="true" />
                         Interval (s)
                     </label>
                     <input id={`${idPrefix}-interval`} name="interval" type="number" placeholder="30" value={f.interval}
@@ -103,7 +103,7 @@ const HostFormFields = ({ f, setF, compact = false }) => {
             )}
             <div className="space-y-1">
                 <label htmlFor={`${idPrefix}-latency`} className="text-xs font-medium text-slate-400">
-                    <AlertTriangle className="inline w-3 h-3 mr-1" />
+                    <AlertTriangle className="inline w-3 h-3 mr-1" aria-hidden="true" />
                     Latency Alert (ms)
                 </label>
                 <input id={`${idPrefix}-latency`} name="latency_threshold_ms" type="number" placeholder="Optional" value={f.latency_threshold_ms}
