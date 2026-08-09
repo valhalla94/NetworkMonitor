@@ -33,3 +33,7 @@
 ## 2024-12-05 - Optimize fetching data for high-frequency SSE payload
 **Learning:** Found a performance bottleneck where the `_get_sse_data` function fetched the entire `HostDB` ORM models on every single call (which happens every 5 seconds for each connected client), just to extract a subset of fields. SQLAlchemy ORM instantiation overhead is significant in high-frequency loops.
 **Action:** When a high-frequency polling endpoint or SSE generator only needs specific fields, use SQLAlchemy's `db.query(Model.col1, Model.col2)` instead of `db.query(Model)`. This returns lightweight tuples directly instead of instantiating heavy ORM objects, significantly reducing memory allocation, GC pressure, and CPU overhead.
+
+## 2025-02-14 - Optimize List Item Re-renders
+**Learning:** Found a performance bottleneck in `HostManager.jsx` where editing a single host triggered an O(N) DOM re-render of the entire table because the `hosts.map` loop returned inline components and passed down the parent's frequently changing `editForm` state to every iteration.
+**Action:** Extract list item rendering logic into separate components wrapped with `React.memo()`. To ensure `React.memo` effectively skips renders for unmodified items, pass stable callback references (using `useCallback`) and selectively pass dynamically changing state props (e.g., passing `editForm` data only if an item `isEditing`) so the shallow equality check doesn't fail for the entire list.
