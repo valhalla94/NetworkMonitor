@@ -65,7 +65,7 @@ const HostFormFields = ({ f, setF, compact = false }) => {
                 <div className="flex items-end pb-2">
                     <label htmlFor={`${idPrefix}-ssl`} className="flex items-center gap-2 cursor-pointer">
                         <input id={`${idPrefix}-ssl`} name="ssl_monitor" type="checkbox" checked={f.ssl_monitor} onChange={setField(setF)}
-                            className="w-4 h-4 rounded border-slate-600 bg-slate-700" />
+                            className="w-4 h-4 rounded border-slate-600 bg-slate-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500" />
                         <span className="text-xs text-slate-300">Monitor SSL</span>
                     </label>
                 </div>
@@ -133,12 +133,12 @@ const HostFormFields = ({ f, setF, compact = false }) => {
         <div className="flex gap-4">
             <label htmlFor={`${idPrefix}-maint`} className="flex items-center gap-2 cursor-pointer">
                 <input id={`${idPrefix}-maint`} name="maintenance" type="checkbox" checked={f.maintenance} onChange={setField(setF)}
-                    className="w-4 h-4 rounded border-slate-600 bg-slate-700" />
+                    className="w-4 h-4 rounded border-slate-600 bg-slate-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500" />
                 <span className="text-xs text-slate-300">Maintenance Mode</span>
             </label>
             <label htmlFor={`${idPrefix}-enabled`} className="flex items-center gap-2 cursor-pointer">
                 <input id={`${idPrefix}-enabled`} name="enabled" type="checkbox" checked={f.enabled} onChange={setField(setF)}
-                    className="w-4 h-4 rounded border-slate-600 bg-slate-700" />
+                    className="w-4 h-4 rounded border-slate-600 bg-slate-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500" />
                 <span className="text-xs text-slate-300">Enabled</span>
             </label>
         </div>
