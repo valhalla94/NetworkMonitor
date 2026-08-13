@@ -115,7 +115,7 @@ const HostManager = ({ onHostAdded, hosts, onHostDeleted }) => {
                     onClick={() => setShowAddPanel(true)}
                     className="glass-button px-5 py-2.5 rounded-xl font-medium flex items-center gap-2"
                 >
-                    <Plus className="w-5 h-5" />
+                    <Plus className="w-5 h-5" aria-hidden="true" />
                     Add Host
                 </button>
             </div>
@@ -128,7 +128,7 @@ const HostManager = ({ onHostAdded, hosts, onHostDeleted }) => {
                         <div className="p-6">
                             <div className="flex items-center justify-between mb-6">
                                 <h3 className="text-xl font-bold text-white flex items-center gap-2">
-                                    <Plus className="text-blue-400 w-5 h-5" />
+                                    <Plus className="text-blue-400 w-5 h-5" aria-hidden="true" />
                                     Add New Host
                                 </h3>
                                 <button
@@ -136,7 +136,7 @@ const HostManager = ({ onHostAdded, hosts, onHostDeleted }) => {
                                     aria-label="Close"
                                     className="text-slate-400 hover:text-white transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded-lg p-1"
                                 >
-                                    <X className="w-6 h-6" />
+                                    <X className="w-6 h-6" aria-hidden="true" />
                                 </button>
                             </div>
                             <form onSubmit={handleSubmit} className="space-y-4">

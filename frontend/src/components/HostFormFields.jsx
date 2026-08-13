@@ -113,7 +113,7 @@ const HostFormFields = ({ f, setF, compact = false }) => {
         </div>
 
         <div className="space-y-2 pt-1 border-t border-slate-700/50">
-            <label className="text-xs font-medium text-slate-400">Scheduled Maintenance Window</label>
+            <div className="text-xs font-medium text-slate-400">Scheduled Maintenance Window</div>
             <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
                     <label htmlFor={`${idPrefix}-mstart`} className="text-xs text-slate-500">From</label>
