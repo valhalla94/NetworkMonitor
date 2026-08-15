@@ -33,3 +33,7 @@
 ## 2024-12-05 - Optimize fetching data for high-frequency SSE payload
 **Learning:** Found a performance bottleneck where the `_get_sse_data` function fetched the entire `HostDB` ORM models on every single call (which happens every 5 seconds for each connected client), just to extract a subset of fields. SQLAlchemy ORM instantiation overhead is significant in high-frequency loops.
 **Action:** When a high-frequency polling endpoint or SSE generator only needs specific fields, use SQLAlchemy's `db.query(Model.col1, Model.col2)` instead of `db.query(Model)`. This returns lightweight tuples directly instead of instantiating heavy ORM objects, significantly reducing memory allocation, GC pressure, and CPU overhead.
+
+## 2024-05-20 - Extract mapped items into React.memo component
+**Learning:** High-frequency parent component re-renders causes mapped elements to re-render. When mapping over arrays, having the render function inline causes the full O(N) array items to re-render.
+**Action:** Extract mapped items into separate components wrapped with React.memo and pass stable references using useCallback to the parent component.
