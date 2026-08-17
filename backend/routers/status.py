@@ -19,14 +19,15 @@ logger = logging.getLogger(__name__)
 router = APIRouter(tags=["Status & Events"])
 
 
+
+
 @router.get("/status")
 def get_network_status(
     db: Session = Depends(get_db), current_user: auth.User = Depends(get_current_user)
 ):
-    # ⚡ Bolt: Fetch only needed columns directly from HostDB to avoid expensive PingResultDB joins
+    # ⚡ Bolt: Fetch only needed columns directly from HostDB to avoid ORM instantiation overhead.
     # HostDB already caches last_status and average_latency via the scheduler.
     hosts = db.query(
-        models.HostDB.id,
         models.HostDB.last_status,
         models.HostDB.average_latency
     ).filter(models.HostDB.enabled == True).all()
@@ -56,6 +57,8 @@ def get_network_status(
         "total": total_hosts,
         "global_avg_latency": global_avg,
     }
+
+
 
 
 def _get_sse_data():
