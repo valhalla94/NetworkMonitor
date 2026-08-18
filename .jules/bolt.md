@@ -33,3 +33,10 @@
 ## 2024-12-05 - Optimize fetching data for high-frequency SSE payload
 **Learning:** Found a performance bottleneck where the `_get_sse_data` function fetched the entire `HostDB` ORM models on every single call (which happens every 5 seconds for each connected client), just to extract a subset of fields. SQLAlchemy ORM instantiation overhead is significant in high-frequency loops.
 **Action:** When a high-frequency polling endpoint or SSE generator only needs specific fields, use SQLAlchemy's `db.query(Model.col1, Model.col2)` instead of `db.query(Model)`. This returns lightweight tuples directly instead of instantiating heavy ORM objects, significantly reducing memory allocation, GC pressure, and CPU overhead.
+## 2025-02-12 - Prevent O(N) DOM Re-renders in Lists
+**Learning:** Found a performance bottleneck in `HostManager.jsx` where the entire list of `hosts` was being re-rendered whenever a user typed into an edit form for a single row. This was because the `.map()` loop was rendering inline elements that were tightly coupled to the parent's `editForm` state, meaning every keystroke caused the parent and all children to re-render.
+**Action:** Extract list items into a separate component wrapped with `React.memo()`. Crucially, ensure that dynamically changing state props (like `editForm`) are only passed to the specific item being edited (`isEditing ? editForm : null`) and use `useCallback` for event handlers so that non-editing items maintain stable prop references and skip re-renders.
+
+## 2025-02-12 - Reduce SQLAlchemy ORM Instantiation Overhead
+**Learning:** Found a performance optimization in the `/status` endpoint where fetching specific columns instead of full ORM models reduces the memory footprint and CPU overhead associated with SQLAlchemy model instantiation, particularly beneficial for high-traffic read-only endpoints.
+**Action:** When querying for data where only a subset of columns is needed (especially for aggregation or simple JSON responses), use `db.query(Model.col1, Model.col2)` instead of `db.query(Model)` to bypass ORM object creation.
