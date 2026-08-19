@@ -19,7 +19,7 @@ const QuickPingCard = ({
             </div>
             <form onSubmit={onSubmitPing} className="flex gap-2 mb-4">
                 <input type="text" value={target} onChange={(e) => onChangeTarget(e.target.value)}
-                    placeholder="IP or Hostname" disabled={loading} aria-label="Quick ping target IP or hostname"
+                    placeholder="e.g. 8.8.8.8 or google.com" disabled={loading} aria-label="Quick ping target IP or hostname"
                     className="flex-1 bg-slate-800/50 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-amber-500 focus-visible:ring-1 focus-visible:ring-amber-500 transition-colors disabled:opacity-50" />
                 <button type="submit" disabled={loading || !target}
                     aria-label={loading ? "Executing quick ping" : "Execute quick ping"}
