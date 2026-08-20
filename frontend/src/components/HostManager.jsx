@@ -243,7 +243,7 @@ const HostManager = ({ onHostAdded, hosts, onHostDeleted }) => {
                                 </button>
                             </div>
                             <form onSubmit={handleSubmit} className="space-y-4">
-                                <HostFormFields f={form} setF={setForm} />
+                                <HostFormFields f={form} setF={setForm} disabled={isSubmitting} />
                                 <button type="submit" disabled={isSubmitting} className="glass-button w-full py-3 rounded-xl font-bold flex items-center justify-center gap-2 mt-4 disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500">
                                     {isSubmitting ? (
                                         <>
