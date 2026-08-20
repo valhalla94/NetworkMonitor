@@ -237,28 +237,19 @@ def ping_host(
                 latency_val = float(latency)
                 logger.info(f"Ping {name} ({ip_address}): {latency_val:.2f}ms")
 
-        # Save result
+        # ⚡ Bolt: Save result & Status change detection (Combined Session to reduce DB transactions)
         db = SessionLocal()
         try:
+            host = db.query(HostDB).filter(HostDB.id == host_id).first()
+            if not host:
+                return
+
             db.add(
                 PingResultDB(
                     host_id=host_id,
                     latency=latency_val if latency_val >= 0 else None,
                 )
             )
-            db.commit()
-        except Exception as e:
-            logger.error(f"Error saving ping result: {e}")
-            db.rollback()
-        finally:
-            db.close()
-
-        # Status change detection + alerts
-        db = SessionLocal()
-        try:
-            host = db.query(HostDB).filter(HostDB.id == host_id).first()
-            if not host:
-                return
 
             current_status = "UP" if latency_val >= 0 else "DOWN"
 
@@ -271,7 +262,9 @@ def ping_host(
                         f"Host: {name} ({ip_address})\nState: {current_status}\nTime: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
                     )
                 host.last_status = current_status
-                db.commit()
+
+            # Single commit saves both the new ping result and any host status updates
+            db.commit()
 
             # Latency threshold alert
             if (

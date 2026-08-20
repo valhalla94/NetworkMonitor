@@ -40,3 +40,7 @@
 ## 2025-02-12 - Reduce SQLAlchemy ORM Instantiation Overhead
 **Learning:** Found a performance optimization in the `/status` endpoint where fetching specific columns instead of full ORM models reduces the memory footprint and CPU overhead associated with SQLAlchemy model instantiation, particularly beneficial for high-traffic read-only endpoints.
 **Action:** When querying for data where only a subset of columns is needed (especially for aggregation or simple JSON responses), use `db.query(Model.col1, Model.col2)` instead of `db.query(Model)` to bypass ORM object creation.
+
+## 2025-02-12 - Combine Multiple Database Transactions in High-Frequency Scheduler Loops
+**Learning:** Found a performance bottleneck in the `ping_host` function where two separate database sessions and transactions were being created sequentially: one to insert the `PingResultDB` entry, and a second to update the `HostDB.last_status`. Because this function is triggered every few seconds for every monitored host in a multithreaded background scheduler, these separate transactions multiplied SQLite lock contention and I/O overhead.
+**Action:** Always combine sequential database insertions and updates that belong to the same logical operation into a single `db.commit()` when possible, especially in high-frequency background loops, to minimize transaction overhead and reduce database locking conflicts.
