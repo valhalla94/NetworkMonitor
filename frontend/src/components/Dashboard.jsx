@@ -209,9 +209,16 @@ const Dashboard = () => {
         setIsChartLoading(true);
         try {
             const response = await getMetrics(hostId, timeRange);
+            // ⚡ Bolt: Use a single Intl.DateTimeFormat instance instead of calling .toLocaleString() inside the loop.
+            // .toLocaleString() creates a new formatting object on every call, which is a major CPU bottleneck
+            // when mapping over thousands of data points (e.g. 1 year range).
+            const dateFormatter = new Intl.DateTimeFormat(undefined, {
+                year: 'numeric', month: 'numeric', day: 'numeric',
+                hour: 'numeric', minute: 'numeric', second: 'numeric'
+            });
             const formattedData = response.data.data.map(d => ({
                 ...d,
-                time: new Date(d.time).toLocaleString(),
+                time: dateFormatter.format(new Date(d.time)),
                 latency: Math.round(d.latency * 100) / 100,
             }));
             setMetrics(formattedData);

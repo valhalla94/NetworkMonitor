@@ -40,3 +40,7 @@
 ## 2025-02-12 - Reduce SQLAlchemy ORM Instantiation Overhead
 **Learning:** Found a performance optimization in the `/status` endpoint where fetching specific columns instead of full ORM models reduces the memory footprint and CPU overhead associated with SQLAlchemy model instantiation, particularly beneficial for high-traffic read-only endpoints.
 **Action:** When querying for data where only a subset of columns is needed (especially for aggregation or simple JSON responses), use `db.query(Model.col1, Model.col2)` instead of `db.query(Model)` to bypass ORM object creation.
+
+## 2025-02-12 - Optimize Date Formatting in Large Arrays
+**Learning:** Found a major performance bottleneck where `new Date(d.time).toLocaleString()` was called inside a map loop iterating over thousands of metrics points. `Date.prototype.toLocaleString()` allocates new formatting objects on every call, leading to significant CPU blocking and lag on the main UI thread during parsing.
+**Action:** Always extract the date formatting logic outside the map loop when parsing large time-series data sets. Instantiate a single `new Intl.DateTimeFormat()` before the loop and reuse it using `.format(new Date(...))` to speed up string generation by an order of magnitude.
