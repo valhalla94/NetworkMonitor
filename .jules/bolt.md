@@ -44,3 +44,7 @@
 ## 2025-02-12 - Optimize Date Formatting in Large Arrays
 **Learning:** Found a major performance bottleneck where `new Date(d.time).toLocaleString()` was called inside a map loop iterating over thousands of metrics points. `Date.prototype.toLocaleString()` allocates new formatting objects on every call, leading to significant CPU blocking and lag on the main UI thread during parsing.
 **Action:** Always extract the date formatting logic outside the map loop when parsing large time-series data sets. Instantiate a single `new Intl.DateTimeFormat()` before the loop and reuse it using `.format(new Date(...))` to speed up string generation by an order of magnitude.
+
+## 2025-02-12 - Combine SQLite Transactions in High-Frequency Loops
+**Learning:** Found a performance bottleneck where the `ping_host` function in the background scheduler opened a database session and committed a transaction to insert a ping result, and then immediately opened another session and transaction to update the host's status. Since SQLite locks the entire database for writes, multiple rapid consecutive transactions increase lock contention and overhead in high-frequency background loops (like the scheduler polling every few seconds).
+**Action:** Always combine sequential insertions and updates into a single SQLAlchemy session and a single `db.commit()` block. This dramatically minimizes SQLite lock contention and database transaction overhead.
