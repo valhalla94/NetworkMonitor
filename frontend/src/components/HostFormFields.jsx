@@ -146,4 +146,8 @@ const HostFormFields = ({ f, setF, compact = false, disabled = false }) => {
     );
 };
 
-export default HostFormFields;
+// ⚡ Bolt: Wrapped HostFormFields in React.memo to prevent unnecessary O(N) DOM re-renders
+// when the parent component (like HostManager or HostRow) re-renders,
+// especially during state changes not directly affecting these specific fields.
+// Expected Impact: Reduces re-renders of the large form component if props haven't changed.
+export default React.memo(HostFormFields);
