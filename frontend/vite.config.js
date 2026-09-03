@@ -27,4 +27,16 @@ export default defineConfig({
     globals: true,
     setupFiles: './src/__tests__/setup.js',
   },
+  server: {
+    proxy: {
+      '/api': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+      },
+      '/events': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+      }
+    }
+  }
 })
