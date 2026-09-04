@@ -208,31 +208,41 @@ def export_metrics_csv(
     delta = range_map.get(range, timedelta(days=30))
     cutoff = now - delta
 
-    results = (
+    query = (
         db.query(models.PingResultDB.timestamp, models.PingResultDB.latency)
         .filter(
             models.PingResultDB.host_id == host_id,
             models.PingResultDB.timestamp >= cutoff,
         )
         .order_by(models.PingResultDB.timestamp.asc())
-        .all()
     )
 
-    output = io.StringIO()
-    writer = csv.writer(output)
-    writer.writerow(["timestamp", "latency_ms", "status"])
-    for timestamp, latency in results:
-        writer.writerow(
-            [
-                timestamp.isoformat(),
-                latency if latency is not None else "",
-                "UP" if latency is not None else "DOWN",
-            ]
-        )
+    # ⚡ Bolt: Use yield_per(1000) and generator to stream large CSV exports.
+    # Impact: Prevents massive memory spikes and OOM crashes when exporting 1-year telemetry data,
+    # as we no longer fetch and buffer the entire dataset in RAM before sending the response.
+    def iter_csv():
+        output = io.StringIO()
+        writer = csv.writer(output)
+        writer.writerow(["timestamp", "latency_ms", "status"])
+        yield output.getvalue()
+        output.seek(0)
+        output.truncate(0)
 
-    output.seek(0)
+        for row in query.yield_per(1000):
+            timestamp, latency = row
+            writer.writerow(
+                [
+                    timestamp.isoformat(),
+                    latency if latency is not None else "",
+                    "UP" if latency is not None else "DOWN",
+                ]
+            )
+            yield output.getvalue()
+            output.seek(0)
+            output.truncate(0)
+
     return StreamingResponse(
-        iter([output.getvalue()]),
+        iter_csv(),
         media_type="text/csv",
         headers={
             "Content-Disposition": f"attachment; filename=metrics_host_{host_id}_{range}.csv"
