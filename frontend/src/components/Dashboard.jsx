@@ -485,6 +485,8 @@ const Dashboard = () => {
                                     {showUptimeChart ? 'Latency' : 'Uptime'}
                                 </button>
                                 <button onClick={handleExportCSV}
+                                    aria-label="Export data as CSV"
+                                    title="Export data as CSV"
                                     className="px-3 py-1.5 rounded-lg text-xs font-medium text-slate-400 hover:text-white bg-slate-800/50 flex items-center gap-1.5 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400">
                                     <Download className="w-3.5 h-3.5" aria-hidden="true" />CSV
                                 </button>
