@@ -208,31 +208,53 @@ def export_metrics_csv(
     delta = range_map.get(range, timedelta(days=30))
     cutoff = now - delta
 
-    results = (
+    # ⚡ Bolt: Use yield_per and generator to stream large CSV exports directly.
+    # This prevents loading the entire dataset into memory for processing, significantly
+    # reducing memory usage and O(n) processing overhead on the API server for large time ranges.
+    query = (
         db.query(models.PingResultDB.timestamp, models.PingResultDB.latency)
         .filter(
             models.PingResultDB.host_id == host_id,
             models.PingResultDB.timestamp >= cutoff,
         )
         .order_by(models.PingResultDB.timestamp.asc())
-        .all()
     )
 
-    output = io.StringIO()
-    writer = csv.writer(output)
-    writer.writerow(["timestamp", "latency_ms", "status"])
-    for timestamp, latency in results:
-        writer.writerow(
-            [
-                timestamp.isoformat(),
-                latency if latency is not None else "",
-                "UP" if latency is not None else "DOWN",
-            ]
-        )
+    def iter_csv():
+        output = io.StringIO()
+        writer = csv.writer(output)
+        writer.writerow(["timestamp", "latency_ms", "status"])
 
-    output.seek(0)
+        # Yield the header immediately so empty datasets still return a valid CSV structure
+        yield output.getvalue()
+        output.seek(0)
+        output.truncate(0)
+
+        # Buffer rows to avoid massive thread pool thrashing in StreamingResponse
+        # with synchronous generators yielding line-by-line
+        buffer_count = 0
+
+        for timestamp, latency in query.yield_per(1000):
+            writer.writerow(
+                [
+                    timestamp.isoformat(),
+                    latency if latency is not None else "",
+                    "UP" if latency is not None else "DOWN",
+                ]
+            )
+            buffer_count += 1
+            if buffer_count >= 1000:
+                yield output.getvalue()
+                output.seek(0)
+                output.truncate(0)
+                buffer_count = 0
+
+        # Yield remaining rows
+        if buffer_count > 0:
+            yield output.getvalue()
+
     return StreamingResponse(
-        iter([output.getvalue()]),
+        iter_csv(),
         media_type="text/csv",
         headers={
             "Content-Disposition": f"attachment; filename=metrics_host_{host_id}_{range}.csv"
