@@ -221,3 +221,41 @@ def test_get_uptime_history_authenticated(client, auth_headers):
     response = client.get(f"/uptime/{host_id}", headers=auth_headers)
     assert response.status_code == 200
     assert isinstance(response.json(), list)
+
+def test_export_metrics_csv(client, auth_headers, db_session):
+    from datetime import datetime, timedelta
+    import models
+
+    create_resp = client.post(
+        "/hosts/",
+        json={
+            "name": "Host CSV Export",
+            "ip_address": "10.0.0.8",
+            "interval": 30,
+        },
+        headers=auth_headers,
+    )
+    host_id = create_resp.json()["id"]
+
+    now = datetime.utcnow()
+    pings = [
+        models.PingResultDB(
+            host_id=host_id, latency=15.0, timestamp=now - timedelta(minutes=10)
+        ),
+        models.PingResultDB(
+            host_id=host_id, latency=None, timestamp=now - timedelta(minutes=5)
+        ),
+    ]
+    db_session.add_all(pings)
+    db_session.commit()
+
+    response = client.get(f"/export/metrics/{host_id}?range=-1h", headers=auth_headers)
+    assert response.status_code == 200
+    assert response.headers["content-type"] == "text/csv; charset=utf-8"
+    assert "attachment; filename=metrics_host_" in response.headers["content-disposition"]
+
+    lines = response.text.strip().split("\r\n")
+    assert len(lines) == 3  # Header + 2 data rows
+    assert lines[0] == "timestamp,latency_ms,status"
+    assert ",15.0,UP" in lines[1]
+    assert ",,DOWN" in lines[2]
