@@ -224,6 +224,7 @@ def test_get_uptime_history_authenticated(client, auth_headers):
 
 def test_export_metrics_csv(client, auth_headers, db_session):
     from datetime import datetime, timedelta
+
     import models
 
     create_resp = client.post(
