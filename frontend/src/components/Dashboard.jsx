@@ -478,12 +478,20 @@ const Dashboard = () => {
                                 </p>
                             </div>
                             <div className="flex items-center gap-2 flex-wrap">
-                                <button onClick={() => setShowUptimeChart(!showUptimeChart)}
-                                    aria-label="Toggle between latency and uptime chart"
-                                    aria-pressed={showUptimeChart}
-                                    className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 ${showUptimeChart ? 'bg-emerald-600 text-white' : 'text-slate-400 hover:text-white bg-slate-800/50'}`}>
-                                    {showUptimeChart ? 'Latency' : 'Uptime'}
-                                </button>
+                                <div className="flex items-center gap-1 bg-slate-900/50 p-1 rounded-xl border border-slate-700/50" role="group" aria-label="Chart type toggle">
+                                    <button onClick={() => setShowUptimeChart(false)}
+                                        aria-label="Show latency chart"
+                                        aria-pressed={!showUptimeChart}
+                                        className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 ${!showUptimeChart ? 'bg-emerald-600 text-white shadow-lg' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}>
+                                        Latency
+                                    </button>
+                                    <button onClick={() => setShowUptimeChart(true)}
+                                        aria-label="Show uptime chart"
+                                        aria-pressed={showUptimeChart}
+                                        className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 ${showUptimeChart ? 'bg-emerald-600 text-white shadow-lg' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}>
+                                        Uptime
+                                    </button>
+                                </div>
                                 <button onClick={handleExportCSV}
                                     className="px-3 py-1.5 rounded-lg text-xs font-medium text-slate-400 hover:text-white bg-slate-800/50 flex items-center gap-1.5 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400">
                                     <Download className="w-3.5 h-3.5" aria-hidden="true" />CSV
