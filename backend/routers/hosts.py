@@ -208,31 +208,43 @@ def export_metrics_csv(
     delta = range_map.get(range, timedelta(days=30))
     cutoff = now - delta
 
-    results = (
+    query = (
         db.query(models.PingResultDB.timestamp, models.PingResultDB.latency)
         .filter(
             models.PingResultDB.host_id == host_id,
             models.PingResultDB.timestamp >= cutoff,
         )
         .order_by(models.PingResultDB.timestamp.asc())
-        .all()
     )
 
-    output = io.StringIO()
-    writer = csv.writer(output)
-    writer.writerow(["timestamp", "latency_ms", "status"])
-    for timestamp, latency in results:
-        writer.writerow(
-            [
-                timestamp.isoformat(),
-                latency if latency is not None else "",
-                "UP" if latency is not None else "DOWN",
-            ]
-        )
+    def generate():
+        output = io.StringIO()
+        writer = csv.writer(output)
+        writer.writerow(["timestamp", "latency_ms", "status"])
+        yield output.getvalue()
+        output.seek(0)
+        output.truncate(0)
 
-    output.seek(0)
+        for i, (timestamp, latency) in enumerate(query.yield_per(1000)):
+            writer.writerow(
+                [
+                    timestamp.isoformat(),
+                    latency if latency is not None else "",
+                    "UP" if latency is not None else "DOWN",
+                ]
+            )
+            # Yield every 1000 rows to prevent massive memory usage and thread thrashing
+            if i % 1000 == 999:
+                yield output.getvalue()
+                output.seek(0)
+                output.truncate(0)
+
+        # Yield any remaining buffered data
+        if output.getvalue():
+            yield output.getvalue()
+
     return StreamingResponse(
-        iter([output.getvalue()]),
+        generate(),
         media_type="text/csv",
         headers={
             "Content-Disposition": f"attachment; filename=metrics_host_{host_id}_{range}.csv"

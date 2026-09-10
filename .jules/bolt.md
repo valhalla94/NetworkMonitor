@@ -48,3 +48,7 @@
 ## 2025-02-12 - Combine SQLite Transactions in High-Frequency Loops
 **Learning:** Found a performance bottleneck where the `ping_host` function in the background scheduler opened a database session and committed a transaction to insert a ping result, and then immediately opened another session and transaction to update the host's status. Since SQLite locks the entire database for writes, multiple rapid consecutive transactions increase lock contention and overhead in high-frequency background loops (like the scheduler polling every few seconds).
 **Action:** Always combine sequential insertions and updates into a single SQLAlchemy session and a single `db.commit()` block. This dramatically minimizes SQLite lock contention and database transaction overhead.
+
+## 2025-02-13 - Optimize CSV Export with Chunked StreamingResponse
+**Learning:** Found a performance bottleneck where the `export_metrics_csv` endpoint loaded all results into memory and wrote them completely to a `StringIO` before returning a `StreamingResponse`. This caused severe memory bloat on large metrics sets.
+**Action:** Use `query.yield_per(1000)` along with a generator function yielding buffered chunks of rows from `io.StringIO()`. This minimizes memory footprint and thread thrashing in FastAPI endpoints returning large datasets.
