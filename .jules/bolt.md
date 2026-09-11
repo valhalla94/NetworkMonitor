@@ -48,3 +48,7 @@
 ## 2025-02-12 - Combine SQLite Transactions in High-Frequency Loops
 **Learning:** Found a performance bottleneck where the `ping_host` function in the background scheduler opened a database session and committed a transaction to insert a ping result, and then immediately opened another session and transaction to update the host's status. Since SQLite locks the entire database for writes, multiple rapid consecutive transactions increase lock contention and overhead in high-frequency background loops (like the scheduler polling every few seconds).
 **Action:** Always combine sequential insertions and updates into a single SQLAlchemy session and a single `db.commit()` block. This dramatically minimizes SQLite lock contention and database transaction overhead.
+
+## 2025-02-12 - Optimize memory usage with chunked streaming
+**Learning:** Found a memory bottleneck where the application fetches large amounts of metrics data via the `/export/metrics/{host_id}` endpoint and builds the entire CSV string in memory before returning it. While a synchronous generator line-by-line yields would avoid high memory consumption, Starlette thread pool thrashing makes it very inefficient.
+**Action:** When streaming large datasets, use `query.yield_per()` with an iterator that buffers string operations (like `csv.writer` with `io.StringIO`) into chunks. Yielding chunks significantly reduces database transfer payload and GC pressure without thrashing thread pools.
