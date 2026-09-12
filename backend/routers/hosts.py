@@ -208,31 +208,50 @@ def export_metrics_csv(
     delta = range_map.get(range, timedelta(days=30))
     cutoff = now - delta
 
-    results = (
-        db.query(models.PingResultDB.timestamp, models.PingResultDB.latency)
-        .filter(
-            models.PingResultDB.host_id == host_id,
-            models.PingResultDB.timestamp >= cutoff,
-        )
-        .order_by(models.PingResultDB.timestamp.asc())
-        .all()
-    )
+    # ⚡ Bolt: Use a generator with yield_per to stream large CSV exports in chunks.
+    # Impact: Prevents massive memory allocation when exporting large timelines (e.g. 1 year of data).
+    # Using io.StringIO to buffer 1000 rows at a time prevents Starlette thread pool thrashing
+    # that occurs if we were to yield line-by-line.
+    def iter_csv():
+        output = io.StringIO()
+        writer = csv.writer(output)
+        writer.writerow(["timestamp", "latency_ms", "status"])
 
-    output = io.StringIO()
-    writer = csv.writer(output)
-    writer.writerow(["timestamp", "latency_ms", "status"])
-    for timestamp, latency in results:
-        writer.writerow(
-            [
-                timestamp.isoformat(),
-                latency if latency is not None else "",
-                "UP" if latency is not None else "DOWN",
-            ]
+        # Yield the header immediately to ensure it's always present even if there's no data
+        yield output.getvalue()
+        output.seek(0)
+        output.truncate(0)
+
+        query = (
+            db.query(models.PingResultDB.timestamp, models.PingResultDB.latency)
+            .filter(
+                models.PingResultDB.host_id == host_id,
+                models.PingResultDB.timestamp >= cutoff,
+            )
+            .order_by(models.PingResultDB.timestamp.asc())
         )
 
-    output.seek(0)
+        count = 0
+        for timestamp, latency in query.yield_per(1000):
+            writer.writerow(
+                [
+                    timestamp.isoformat(),
+                    latency if latency is not None else "",
+                    "UP" if latency is not None else "DOWN",
+                ]
+            )
+            count += 1
+            if count >= 1000:
+                yield output.getvalue()
+                output.seek(0)
+                output.truncate(0)
+                count = 0
+
+        if count > 0:
+            yield output.getvalue()
+
     return StreamingResponse(
-        iter([output.getvalue()]),
+        iter_csv(),
         media_type="text/csv",
         headers={
             "Content-Disposition": f"attachment; filename=metrics_host_{host_id}_{range}.csv"
