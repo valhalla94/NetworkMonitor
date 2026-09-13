@@ -208,31 +208,46 @@ def export_metrics_csv(
     delta = range_map.get(range, timedelta(days=30))
     cutoff = now - delta
 
-    results = (
+    # ⚡ Bolt: Use .yield_per(1000) for large result sets to avoid memory spikes.
+    # Buffer into chunks to avoid thread pool thrashing in Starlette.
+    query = (
         db.query(models.PingResultDB.timestamp, models.PingResultDB.latency)
         .filter(
             models.PingResultDB.host_id == host_id,
             models.PingResultDB.timestamp >= cutoff,
         )
         .order_by(models.PingResultDB.timestamp.asc())
-        .all()
     )
 
-    output = io.StringIO()
-    writer = csv.writer(output)
-    writer.writerow(["timestamp", "latency_ms", "status"])
-    for timestamp, latency in results:
-        writer.writerow(
-            [
-                timestamp.isoformat(),
-                latency if latency is not None else "",
-                "UP" if latency is not None else "DOWN",
-            ]
-        )
+    def iter_csv():
+        output = io.StringIO()
+        writer = csv.writer(output)
+        writer.writerow(["timestamp", "latency_ms", "status"])
 
-    output.seek(0)
+        chunk_size = 1000
+        count = 0
+
+        for timestamp, latency in query.yield_per(chunk_size):
+            writer.writerow(
+                [
+                    timestamp.isoformat(),
+                    latency if latency is not None else "",
+                    "UP" if latency is not None else "DOWN",
+                ]
+            )
+            count += 1
+
+            if count >= chunk_size:
+                yield output.getvalue()
+                output.seek(0)
+                output.truncate(0)
+                count = 0
+
+        if count > 0 or output.tell() > 0:
+            yield output.getvalue()
+
     return StreamingResponse(
-        iter([output.getvalue()]),
+        iter_csv(),
         media_type="text/csv",
         headers={
             "Content-Disposition": f"attachment; filename=metrics_host_{host_id}_{range}.csv"

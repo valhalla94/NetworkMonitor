@@ -48,3 +48,7 @@
 ## 2025-02-12 - Combine SQLite Transactions in High-Frequency Loops
 **Learning:** Found a performance bottleneck where the `ping_host` function in the background scheduler opened a database session and committed a transaction to insert a ping result, and then immediately opened another session and transaction to update the host's status. Since SQLite locks the entire database for writes, multiple rapid consecutive transactions increase lock contention and overhead in high-frequency background loops (like the scheduler polling every few seconds).
 **Action:** Always combine sequential insertions and updates into a single SQLAlchemy session and a single `db.commit()` block. This dramatically minimizes SQLite lock contention and database transaction overhead.
+
+## 2025-02-12 - Prevent Starlette Thread Pool Thrashing in CSV Exports
+**Learning:** Found a performance bottleneck when exporting large datasets to CSV in FastAPI using `StreamingResponse`. While `yield_per()` saves memory compared to `.all()`, yielding the CSV *line-by-line* from a synchronous generator causes massive thread pool thrashing in Starlette. This happens because Starlette runs synchronous generators in a thread pool, and yielding for every single row causes excessive context switching, dragging down overall server concurrency.
+**Action:** Always buffer generator output for `StreamingResponse` when dealing with large datasets. Combine `query.yield_per(1000)` with `io.StringIO()` buffering inside the generator to yield string chunks (e.g., 1000 rows at a time) instead of single lines.
