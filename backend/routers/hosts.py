@@ -1,10 +1,11 @@
 import csv
-import io
 import logging
+import os
+import tempfile
 from datetime import datetime, timedelta
 
-from fastapi import APIRouter, Depends, HTTPException
-from fastapi.responses import StreamingResponse
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
+from fastapi.responses import FileResponse
 from sqlalchemy import case, func
 from sqlalchemy.orm import Session
 
@@ -193,6 +194,7 @@ def get_uptime_history(
 @router.get("/export/metrics/{host_id}")
 def export_metrics_csv(
     host_id: int,
+    background_tasks: BackgroundTasks,
     range: str = "-30d",
     db: Session = Depends(get_db),
     current_user: auth.User = Depends(get_current_user),
@@ -208,33 +210,45 @@ def export_metrics_csv(
     delta = range_map.get(range, timedelta(days=30))
     cutoff = now - delta
 
-    results = (
+    query = (
         db.query(models.PingResultDB.timestamp, models.PingResultDB.latency)
         .filter(
             models.PingResultDB.host_id == host_id,
             models.PingResultDB.timestamp >= cutoff,
         )
         .order_by(models.PingResultDB.timestamp.asc())
-        .all()
     )
 
-    output = io.StringIO()
-    writer = csv.writer(output)
-    writer.writerow(["timestamp", "latency_ms", "status"])
-    for timestamp, latency in results:
-        writer.writerow(
-            [
-                timestamp.isoformat(),
-                latency if latency is not None else "",
-                "UP" if latency is not None else "DOWN",
-            ]
-        )
+    # Create a temporary file that FastAPI will stream and then delete
+    fd, temp_path = tempfile.mkstemp(suffix=".csv")
 
-    output.seek(0)
-    return StreamingResponse(
-        iter([output.getvalue()]),
+    with os.fdopen(fd, 'w', newline='') as f:
+        writer = csv.writer(f)
+        writer.writerow(["timestamp", "latency_ms", "status"])
+
+        # ⚡ Bolt: Use yield_per(1000) and buffered chunking to prevent memory overload.
+        # We write to a temporary file instead of yielding inside a StreamingResponse generator
+        # to prevent thread pool thrashing and avoid sqlite3.ProgrammingError (sharing
+        # synchronous db connection across threads).
+        for timestamp, latency in query.yield_per(1000):
+            writer.writerow(
+                [
+                    timestamp.isoformat(),
+                    latency if latency is not None else "",
+                    "UP" if latency is not None else "DOWN",
+                ]
+            )
+
+    def cleanup():
+        try:
+            os.remove(temp_path)
+        except OSError:
+            pass
+
+    background_tasks.add_task(cleanup)
+
+    return FileResponse(
+        temp_path,
         media_type="text/csv",
-        headers={
-            "Content-Disposition": f"attachment; filename=metrics_host_{host_id}_{range}.csv"
-        },
+        filename=f"metrics_host_{host_id}_{range}.csv"
     )
