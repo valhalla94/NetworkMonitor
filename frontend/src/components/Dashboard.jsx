@@ -65,6 +65,22 @@ const Dashboard = () => {
     const [quickPingLoading, setQuickPingLoading] = useState(false);
 
     const sseRef = useRef(null);
+    const searchInputRef = useRef(null);
+
+    useEffect(() => {
+        const handleKeyDown = (e) => {
+            if (e.key === '/' && e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA' && e.target.tagName !== 'SELECT') {
+                e.preventDefault();
+                searchInputRef.current?.focus();
+            }
+            if (e.key === 'Escape' && document.activeElement === searchInputRef.current) {
+                setSearchQuery('');
+                searchInputRef.current?.blur();
+            }
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, []);
 
     const fetchHosts = useCallback(async () => {
         try {
@@ -381,6 +397,7 @@ const Dashboard = () => {
                 <div className="relative flex-1">
                     <Search className="absolute left-3 top-2.5 w-4 h-4 text-slate-500" aria-hidden="true" />
                     <input
+                        ref={searchInputRef}
                         type="text"
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
@@ -388,16 +405,22 @@ const Dashboard = () => {
                         aria-label="Search hosts"
                         className="w-full bg-slate-800/50 border border-slate-700 rounded-xl pl-9 pr-10 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500 focus-visible:ring-1 focus-visible:ring-blue-500 transition-colors"
                     />
-                    {searchQuery && (
-                        <button
-                            type="button"
-                            onClick={() => setSearchQuery('')}
-                            aria-label="Clear search"
-                            className="absolute right-3 top-2.5 text-slate-500 hover:text-slate-300 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded p-0.5"
-                        >
-                            <X className="w-4 h-4" aria-hidden="true" />
-                        </button>
-                    )}
+                    <div className="absolute right-3 top-2.5 flex items-center">
+                        {!searchQuery ? (
+                            <kbd className="hidden sm:inline-flex items-center justify-center px-1.5 py-0.5 rounded border border-slate-700 bg-slate-800/50 text-[10px] font-medium text-slate-500 select-none" aria-hidden="true">
+                                /
+                            </kbd>
+                        ) : (
+                            <button
+                                type="button"
+                                onClick={() => setSearchQuery('')}
+                                aria-label="Clear search"
+                                className="text-slate-500 hover:text-slate-300 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded p-0.5"
+                            >
+                                <X className="w-4 h-4" aria-hidden="true" />
+                            </button>
+                        )}
+                    </div>
                 </div>
                 <div className="flex items-center gap-2 bg-slate-900/50 p-1 rounded-xl border border-slate-700/50" role="group" aria-label="Status filters">
                     {[
