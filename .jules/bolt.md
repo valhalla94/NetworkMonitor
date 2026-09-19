@@ -48,3 +48,7 @@
 ## 2025-02-12 - Combine SQLite Transactions in High-Frequency Loops
 **Learning:** Found a performance bottleneck where the `ping_host` function in the background scheduler opened a database session and committed a transaction to insert a ping result, and then immediately opened another session and transaction to update the host's status. Since SQLite locks the entire database for writes, multiple rapid consecutive transactions increase lock contention and overhead in high-frequency background loops (like the scheduler polling every few seconds).
 **Action:** Always combine sequential insertions and updates into a single SQLAlchemy session and a single `db.commit()` block. This dramatically minimizes SQLite lock contention and database transaction overhead.
+
+## 2025-02-12 - Optimize Database Exports and Memory Usage
+**Learning:** Found a performance issue where exporting metrics to CSV built the entire dataset string inside an `io.StringIO` buffer while holding all SQLAlchemy row objects in memory concurrently via `query.all()`. This leads to excessive memory usage and CPU blocking for large time-series exports.
+**Action:** Always use server-side cursors via `query.yield_per(1000)` combined with a temporary file written synchronously and returned via `FileResponse` with a `BackgroundTask(os.unlink, temp_file.name)`. This turns O(N) memory complexity into O(1), bypassing `StreamingResponse` threads that have problems keeping DB sessions safe without additional locking overhead.
