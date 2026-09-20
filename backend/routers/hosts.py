@@ -1,12 +1,14 @@
 import csv
-import io
 import logging
+import os
+import tempfile
 from datetime import datetime, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException
-from fastapi.responses import StreamingResponse
+from fastapi.responses import FileResponse
 from sqlalchemy import case, func
 from sqlalchemy.orm import Session
+from starlette.background import BackgroundTask
 
 import auth
 import models
@@ -208,6 +210,9 @@ def export_metrics_csv(
     delta = range_map.get(range, timedelta(days=30))
     cutoff = now - delta
 
+    # ⚡ Bolt: Use yield_per(1000) and write directly to a temporary file on disk.
+    # Yielding db results lazily in a background StreamingResponse generator causes SQLite thread safety issues.
+    # Fetching .all() into a memory StringIO causes massive memory bottlenecks for large datasets.
     results = (
         db.query(models.PingResultDB.timestamp, models.PingResultDB.latency)
         .filter(
@@ -215,26 +220,33 @@ def export_metrics_csv(
             models.PingResultDB.timestamp >= cutoff,
         )
         .order_by(models.PingResultDB.timestamp.asc())
-        .all()
+        .yield_per(1000)
     )
 
-    output = io.StringIO()
-    writer = csv.writer(output)
-    writer.writerow(["timestamp", "latency_ms", "status"])
-    for timestamp, latency in results:
-        writer.writerow(
-            [
-                timestamp.isoformat(),
-                latency if latency is not None else "",
-                "UP" if latency is not None else "DOWN",
-            ]
-        )
+    temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".csv", mode="w", newline="")
+    filepath = temp_file.name
 
-    output.seek(0)
-    return StreamingResponse(
-        iter([output.getvalue()]),
+    try:
+        writer = csv.writer(temp_file)
+        writer.writerow(["timestamp", "latency_ms", "status"])
+        for timestamp, latency in results:
+            writer.writerow(
+                [
+                    timestamp.isoformat(),
+                    latency if latency is not None else "",
+                    "UP" if latency is not None else "DOWN",
+                ]
+            )
+    except Exception as e:
+        temp_file.close()
+        os.unlink(filepath)
+        raise e
+    finally:
+        temp_file.close()
+
+    return FileResponse(
+        filepath,
         media_type="text/csv",
-        headers={
-            "Content-Disposition": f"attachment; filename=metrics_host_{host_id}_{range}.csv"
-        },
+        filename=f"metrics_host_{host_id}_{range}.csv",
+        background=BackgroundTask(lambda: os.unlink(filepath))
     )
