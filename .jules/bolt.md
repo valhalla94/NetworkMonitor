@@ -48,3 +48,7 @@
 ## 2025-02-12 - Combine SQLite Transactions in High-Frequency Loops
 **Learning:** Found a performance bottleneck where the `ping_host` function in the background scheduler opened a database session and committed a transaction to insert a ping result, and then immediately opened another session and transaction to update the host's status. Since SQLite locks the entire database for writes, multiple rapid consecutive transactions increase lock contention and overhead in high-frequency background loops (like the scheduler polling every few seconds).
 **Action:** Always combine sequential insertions and updates into a single SQLAlchemy session and a single `db.commit()` block. This dramatically minimizes SQLite lock contention and database transaction overhead.
+
+## 2025-02-13 - Optimize Global Status Aggregation
+**Learning:** Found a performance bottleneck where the application fetched all `HostDB` rows into memory and manually looped over them in Python to calculate `reachable_hosts`, `total_hosts`, and `global_avg_latency` on the high-traffic `/status` endpoint.
+**Action:** Always prefer pushing global computations down to the database level using SQLAlchemy's `func.count()`, `func.sum()`, and `func.avg()` combined with `case()` statements. This completely avoids fetching O(N) rows into memory and loops in Python, significantly reducing memory footprint and database transfer overhead.

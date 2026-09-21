@@ -4,6 +4,7 @@ import logging
 from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Request
+from sqlalchemy import case, func
 from sqlalchemy.orm import Session
 from sse_starlette.sse import EventSourceResponse
 
@@ -25,31 +26,28 @@ router = APIRouter(tags=["Status & Events"])
 def get_network_status(
     db: Session = Depends(get_db), current_user: auth.User = Depends(get_current_user)
 ):
-    # ⚡ Bolt: Fetch only needed columns directly from HostDB to avoid ORM instantiation overhead.
-    # HostDB already caches last_status and average_latency via the scheduler.
-    hosts = db.query(
-        models.HostDB.last_status,
-        models.HostDB.average_latency
-    ).filter(models.HostDB.enabled == True).all()
+    # ⚡ Bolt: Push global aggregations down to the database using func.count(), func.sum(), and func.avg()
+    # combined with case() statements. This completely avoids fetching O(N) rows into memory and looping
+    # over them in Python, significantly reducing memory footprint and database transfer overhead.
+    stats = db.query(
+        func.count(models.HostDB.id).label("total_hosts"),
+        func.sum(case((models.HostDB.last_status == "UP", 1), else_=0)).label("reachable_hosts"),
+        func.avg(
+            case(
+                (models.HostDB.last_status == "UP", models.HostDB.average_latency),
+                else_=None,
+            )
+        ).label("global_avg_latency")
+    ).filter(models.HostDB.enabled == True).first()
 
-    total_hosts = 0
-    reachable_hosts = 0
-    total_latency = 0.0
-    latency_count = 0
-
-    for host in hosts:
-        total_hosts += 1
-        if host.last_status == "UP":
-            reachable_hosts += 1
-            if host.average_latency is not None:
-                total_latency += host.average_latency
-                latency_count += 1
+    total_hosts = stats.total_hosts if stats and stats.total_hosts else 0
+    reachable_hosts = int(stats.reachable_hosts) if stats and stats.reachable_hosts else 0
+    global_avg = float(stats.global_avg_latency) if stats and stats.global_avg_latency else 0.0
 
     if total_hosts == 0:
         return {"status": "UNKNOWN", "details": "No data", "global_avg_latency": 0}
 
     is_up = (reachable_hosts / total_hosts) > 0.5
-    global_avg = (total_latency / latency_count) if latency_count > 0 else 0
 
     return {
         "status": "UP" if is_up else "DOWN",
