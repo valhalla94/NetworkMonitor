@@ -1,12 +1,14 @@
 import csv
-import io
 import logging
+import os
+import tempfile
 from datetime import datetime, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException
-from fastapi.responses import StreamingResponse
+from fastapi.responses import FileResponse
 from sqlalchemy import case, func
 from sqlalchemy.orm import Session
+from starlette.background import BackgroundTask
 
 import auth
 import models
@@ -208,33 +210,40 @@ def export_metrics_csv(
     delta = range_map.get(range, timedelta(days=30))
     cutoff = now - delta
 
-    results = (
+    # ⚡ Bolt: Iterate over the query synchronously using .yield_per(1000)
+    # Write to a temporary file via tempfile, return a FileResponse, and use a BackgroundTask
+    # to delete the temporary file after to prevent memory and SQLite overhead.
+    query = (
         db.query(models.PingResultDB.timestamp, models.PingResultDB.latency)
         .filter(
             models.PingResultDB.host_id == host_id,
             models.PingResultDB.timestamp >= cutoff,
         )
         .order_by(models.PingResultDB.timestamp.asc())
-        .all()
     )
 
-    output = io.StringIO()
-    writer = csv.writer(output)
-    writer.writerow(["timestamp", "latency_ms", "status"])
-    for timestamp, latency in results:
-        writer.writerow(
-            [
-                timestamp.isoformat(),
-                latency if latency is not None else "",
-                "UP" if latency is not None else "DOWN",
-            ]
-        )
+    temp_file = tempfile.NamedTemporaryFile(delete=False, mode="w", newline="", suffix=".csv")
+    try:
+        writer = csv.writer(temp_file)
+        writer.writerow(["timestamp", "latency_ms", "status"])
+        for timestamp, latency in query.yield_per(1000):
+            writer.writerow(
+                [
+                    timestamp.isoformat(),
+                    latency if latency is not None else "",
+                    "UP" if latency is not None else "DOWN",
+                ]
+            )
+    except Exception as e:
+        temp_file.close()
+        os.unlink(temp_file.name)
+        raise e
+    finally:
+        temp_file.close()
 
-    output.seek(0)
-    return StreamingResponse(
-        iter([output.getvalue()]),
+    return FileResponse(
+        temp_file.name,
         media_type="text/csv",
-        headers={
-            "Content-Disposition": f"attachment; filename=metrics_host_{host_id}_{range}.csv"
-        },
+        filename=f"metrics_host_{host_id}_{range}.csv",
+        background=BackgroundTask(os.unlink, temp_file.name)
     )
