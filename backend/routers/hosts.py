@@ -1,12 +1,14 @@
 import csv
-import io
 import logging
+import os
+import tempfile
 from datetime import datetime, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException
-from fastapi.responses import StreamingResponse
+from fastapi.responses import FileResponse
 from sqlalchemy import case, func
 from sqlalchemy.orm import Session
+from starlette.background import BackgroundTask
 
 import auth
 import models
@@ -208,33 +210,43 @@ def export_metrics_csv(
     delta = range_map.get(range, timedelta(days=30))
     cutoff = now - delta
 
-    results = (
+    query = (
         db.query(models.PingResultDB.timestamp, models.PingResultDB.latency)
         .filter(
             models.PingResultDB.host_id == host_id,
             models.PingResultDB.timestamp >= cutoff,
         )
         .order_by(models.PingResultDB.timestamp.asc())
-        .all()
     )
 
-    output = io.StringIO()
-    writer = csv.writer(output)
-    writer.writerow(["timestamp", "latency_ms", "status"])
-    for timestamp, latency in results:
-        writer.writerow(
-            [
-                timestamp.isoformat(),
-                latency if latency is not None else "",
-                "UP" if latency is not None else "DOWN",
-            ]
-        )
+    # ⚡ Bolt: Write directly to a temporary file using batch fetches instead of loading all rows into memory
+    # This prevents severe memory bottlenecks when exporting large datasets over long periods (like -30d or -1y)
+    temp_file = tempfile.NamedTemporaryFile(delete=False, mode="w", newline="")
+    temp_path = temp_file.name
 
-    output.seek(0)
-    return StreamingResponse(
-        iter([output.getvalue()]),
+    try:
+        writer = csv.writer(temp_file)
+        writer.writerow(["timestamp", "latency_ms", "status"])
+
+        # Fetch results in batches to save memory
+        for timestamp, latency in query.yield_per(1000):
+            writer.writerow(
+                [
+                    timestamp.isoformat(),
+                    latency if latency is not None else "",
+                    "UP" if latency is not None else "DOWN",
+                ]
+            )
+    except Exception as e:
+        temp_file.close()
+        os.unlink(temp_path)
+        raise HTTPException(status_code=500, detail=f"Failed to generate CSV: {str(e)}")
+    finally:
+        temp_file.close()
+
+    return FileResponse(
+        path=temp_path,
         media_type="text/csv",
-        headers={
-            "Content-Disposition": f"attachment; filename=metrics_host_{host_id}_{range}.csv"
-        },
+        filename=f"metrics_host_{host_id}_{range}.csv",
+        background=BackgroundTask(os.unlink, temp_path),
     )
