@@ -60,6 +60,8 @@ const Dashboard = () => {
     const [searchQuery, setSearchQuery] = useState('');
     const [statusFilter, setStatusFilter] = useState('all'); // all, up, down, maintenance
 
+    const searchInputRef = useRef(null);
+
     const [quickPingTarget, setQuickPingTarget] = useState('');
     const [quickPingResult, setQuickPingResult] = useState(null);
     const [quickPingLoading, setQuickPingLoading] = useState(false);
@@ -381,6 +383,7 @@ const Dashboard = () => {
                 <div className="relative flex-1">
                     <Search className="absolute left-3 top-2.5 w-4 h-4 text-slate-500" aria-hidden="true" />
                     <input
+                        ref={searchInputRef}
                         type="text"
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
@@ -391,7 +394,10 @@ const Dashboard = () => {
                     {searchQuery && (
                         <button
                             type="button"
-                            onClick={() => setSearchQuery('')}
+                            onClick={() => {
+                                setSearchQuery('');
+                                searchInputRef.current?.focus();
+                            }}
                             aria-label="Clear search"
                             className="absolute right-3 top-2.5 text-slate-500 hover:text-slate-300 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded p-0.5"
                         >
@@ -444,6 +450,7 @@ const Dashboard = () => {
                         onClick={() => {
                             setSearchQuery('');
                             setStatusFilter('all');
+                            searchInputRef.current?.focus();
                         }}
                         className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
                     >
