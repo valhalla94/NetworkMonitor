@@ -360,10 +360,10 @@ const Dashboard = () => {
                 {/* Network Health Card */}
                 <div className="glass-panel p-6 rounded-2xl border-l-4 border-l-cyan-500 bg-cyan-900/10 relative overflow-hidden">
                     <div className="absolute top-0 right-0 p-4 opacity-10 pointer-events-none">
-                        <Zap className="w-20 h-20 text-cyan-400" />
+                        <Zap className="w-20 h-20 text-cyan-400" aria-hidden="true" />
                     </div>
                     <div className="flex items-center gap-3 mb-4">
-                        <div className="p-2 rounded-full bg-cyan-500/20 text-cyan-400"><Zap className="w-5 h-5" /></div>
+                        <div className="p-2 rounded-full bg-cyan-500/20 text-cyan-400"><Zap className="w-5 h-5" aria-hidden="true" /></div>
                         <h2 className="text-lg font-bold text-white">Network Health</h2>
                     </div>
                     <div className="text-sm text-slate-400 mb-1">Global Avg Latency</div>
