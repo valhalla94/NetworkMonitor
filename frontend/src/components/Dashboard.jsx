@@ -65,45 +65,64 @@ const Dashboard = () => {
     const [quickPingLoading, setQuickPingLoading] = useState(false);
 
     const sseRef = useRef(null);
+    const searchInputRef = useRef(null);
+
+    useEffect(() => {
+        const handleKeyDown = (e) => {
+            if (e.key === '/' && e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA' && e.target.tagName !== 'SELECT') {
+                e.preventDefault();
+                searchInputRef.current?.focus();
+            }
+            if (e.key === 'Escape' && document.activeElement === searchInputRef.current) {
+                setSearchQuery('');
+                searchInputRef.current?.blur();
+            }
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, []);
 
     const fetchHosts = useCallback(async () => {
         try {
             const response = await getHosts();
             setHosts(response.data);
-            if (!selectedHost && response.data.length > 0) {
-                setSelectedHost(response.data[0]);
-            }
+            setSelectedHost(prev => {
+                if (!prev && response.data.length > 0) {
+                    return response.data[0];
+                }
+                return prev;
+            });
         } catch (error) {
             console.error('Error fetching hosts:', error);
         }
-    }, [selectedHost]);
+    }, []);
 
-    const fetchNetworkStatus = async () => {
+    const fetchNetworkStatus = useCallback(async () => {
         try {
             const response = await getNetworkStatus();
             setNetworkStatus(response.data);
         } catch (error) {
             console.error('Error fetching network status:', error);
         }
-    };
+    }, []);
 
-    const fetchPublicIpHistory = async () => {
+    const fetchPublicIpHistory = useCallback(async () => {
         try {
             const response = await getPublicIpHistory();
             setPublicIpHistory(response.data);
         } catch (error) {
             console.error('Error fetching IP history:', error);
         }
-    };
+    }, []);
 
-    const fetchSpeedTestHistory = async () => {
+    const fetchSpeedTestHistory = useCallback(async () => {
         try {
             const response = await getSpeedTestHistory();
             setSpeedTestHistory(response.data);
         } catch (error) {
             console.error('Error fetching speedtest history:', error);
         }
-    };
+    }, []);
 
     // SSE connection for real-time host updates
     useEffect(() => {
@@ -191,7 +210,7 @@ const Dashboard = () => {
             clearInterval(ipInterval);
             clearInterval(speedInterval);
         };
-    }, [fetchHosts]);
+    }, [fetchHosts, fetchNetworkStatus, fetchPublicIpHistory, fetchSpeedTestHistory]);
 
     useEffect(() => {
         if (publicIpHistory.length > 0) {
@@ -254,7 +273,7 @@ const Dashboard = () => {
         }
     }, [selectedHost, showUptimeChart, fetchUptimeHistory]);
 
-    const handleRunSpeedTest = async () => {
+    const handleRunSpeedTest = useCallback(async () => {
         setIsSpeedTestRunning(true);
         try {
             await runSpeedTest();
@@ -267,9 +286,9 @@ const Dashboard = () => {
             alert('Failed to start speed test');
             setIsSpeedTestRunning(false);
         }
-    };
+    }, [fetchSpeedTestHistory]);
 
-    const handleQuickPing = async (e) => {
+    const handleQuickPing = useCallback(async (e) => {
         e.preventDefault();
         if (!quickPingTarget) return;
         setQuickPingLoading(true);
@@ -282,7 +301,7 @@ const Dashboard = () => {
         } finally {
             setQuickPingLoading(false);
         }
-    };
+    }, [quickPingTarget]);
 
     const handleExportCSV = () => {
         if (!selectedHost) return;
@@ -360,10 +379,10 @@ const Dashboard = () => {
                 {/* Network Health Card */}
                 <div className="glass-panel p-6 rounded-2xl border-l-4 border-l-cyan-500 bg-cyan-900/10 relative overflow-hidden">
                     <div className="absolute top-0 right-0 p-4 opacity-10 pointer-events-none">
-                        <Zap className="w-20 h-20 text-cyan-400" />
+                        <Zap className="w-20 h-20 text-cyan-400" aria-hidden="true" />
                     </div>
                     <div className="flex items-center gap-3 mb-4">
-                        <div className="p-2 rounded-full bg-cyan-500/20 text-cyan-400"><Zap className="w-5 h-5" /></div>
+                        <div className="p-2 rounded-full bg-cyan-500/20 text-cyan-400"><Zap className="w-5 h-5" aria-hidden="true" /></div>
                         <h2 className="text-lg font-bold text-white">Network Health</h2>
                     </div>
                     <div className="text-sm text-slate-400 mb-1">Global Avg Latency</div>
@@ -381,6 +400,7 @@ const Dashboard = () => {
                 <div className="relative flex-1">
                     <Search className="absolute left-3 top-2.5 w-4 h-4 text-slate-500" aria-hidden="true" />
                     <input
+                        ref={searchInputRef}
                         type="text"
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
@@ -388,16 +408,25 @@ const Dashboard = () => {
                         aria-label="Search hosts"
                         className="w-full bg-slate-800/50 border border-slate-700 rounded-xl pl-9 pr-10 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500 focus-visible:ring-1 focus-visible:ring-blue-500 transition-colors"
                     />
-                    {searchQuery && (
-                        <button
-                            type="button"
-                            onClick={() => setSearchQuery('')}
-                            aria-label="Clear search"
-                            className="absolute right-3 top-2.5 text-slate-500 hover:text-slate-300 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded p-0.5"
-                        >
-                            <X className="w-4 h-4" aria-hidden="true" />
-                        </button>
-                    )}
+                    <div className="absolute right-3 top-2.5 flex items-center">
+                        {!searchQuery ? (
+                            <kbd className="hidden sm:inline-flex items-center justify-center px-1.5 py-0.5 rounded border border-slate-700 bg-slate-800/50 text-[10px] font-medium text-slate-500 select-none" aria-hidden="true">
+                                /
+                            </kbd>
+                        ) : (
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setSearchQuery('');
+                                    searchInputRef.current?.focus();
+                                }}
+                                aria-label="Clear search"
+                                className="text-slate-500 hover:text-slate-300 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded p-0.5"
+                            >
+                                <X className="w-4 h-4" aria-hidden="true" />
+                            </button>
+                        )}
+                    </div>
                 </div>
                 <div className="flex items-center gap-2 bg-slate-900/50 p-1 rounded-xl border border-slate-700/50" role="group" aria-label="Status filters">
                     {[
@@ -444,6 +473,7 @@ const Dashboard = () => {
                         onClick={() => {
                             setSearchQuery('');
                             setStatusFilter('all');
+                            searchInputRef.current?.focus();
                         }}
                         className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
                     >
@@ -478,13 +508,22 @@ const Dashboard = () => {
                                 </p>
                             </div>
                             <div className="flex items-center gap-2 flex-wrap">
-                                <button onClick={() => setShowUptimeChart(!showUptimeChart)}
-                                    aria-label="Toggle between latency and uptime chart"
-                                    aria-pressed={showUptimeChart}
-                                    className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 ${showUptimeChart ? 'bg-emerald-600 text-white' : 'text-slate-400 hover:text-white bg-slate-800/50'}`}>
-                                    {showUptimeChart ? 'Latency' : 'Uptime'}
-                                </button>
+                                <div className="flex items-center gap-1 bg-slate-900/50 p-1 rounded-xl border border-slate-700/50" role="group" aria-label="Chart type toggle">
+                                    <button onClick={() => setShowUptimeChart(false)}
+                                        aria-label="Show latency chart"
+                                        aria-pressed={!showUptimeChart}
+                                        className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 ${!showUptimeChart ? 'bg-emerald-600 text-white shadow-lg' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}>
+                                        Latency
+                                    </button>
+                                    <button onClick={() => setShowUptimeChart(true)}
+                                        aria-label="Show uptime chart"
+                                        aria-pressed={showUptimeChart}
+                                        className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 ${showUptimeChart ? 'bg-emerald-600 text-white shadow-lg' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}>
+                                        Uptime
+                                    </button>
+                                </div>
                                 <button onClick={handleExportCSV}
+                                    aria-label="Export data to CSV"
                                     className="px-3 py-1.5 rounded-lg text-xs font-medium text-slate-400 hover:text-white bg-slate-800/50 flex items-center gap-1.5 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400">
                                     <Download className="w-3.5 h-3.5" aria-hidden="true" />CSV
                                 </button>
