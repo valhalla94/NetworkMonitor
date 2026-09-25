@@ -399,7 +399,9 @@ const Dashboard = () => {
             <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
                 <div className="relative flex-1">
                     <Search className="absolute left-3 top-2.5 w-4 h-4 text-slate-500" aria-hidden="true" />
+                    <label htmlFor="dashboard-search" className="sr-only">Search hosts</label>
                     <input
+                        id="dashboard-search"
                         ref={searchInputRef}
                         type="text"
                         value={searchQuery}
@@ -467,7 +469,7 @@ const Dashboard = () => {
             ))}
 
             {filteredHosts.length === 0 && hosts.length > 0 && (
-                <div className="text-center text-slate-500 py-12">
+                <div className="text-center text-slate-500 py-12" aria-live="polite">
                     <p className="mb-4">No hosts match your search/filter.</p>
                     <button
                         onClick={() => {
