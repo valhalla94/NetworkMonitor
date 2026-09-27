@@ -67,6 +67,13 @@ const Dashboard = () => {
     const sseRef = useRef(null);
     const searchInputRef = useRef(null);
 
+    // ⚡ Bolt: Use a single Intl.DateTimeFormat instance instead of calling .toLocaleString() inside the loop.
+    // .toLocaleString() creates a new formatting object on every call, which is a major CPU bottleneck.
+    const ipHistoryDateFormatter = useMemo(() => new Intl.DateTimeFormat(undefined, {
+        year: 'numeric', month: 'numeric', day: 'numeric',
+        hour: 'numeric', minute: 'numeric', second: 'numeric'
+    }), []);
+
     useEffect(() => {
         const handleKeyDown = (e) => {
             if (e.key === '/' && e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA' && e.target.tagName !== 'SELECT') {
@@ -584,7 +591,7 @@ const Dashboard = () => {
                         {publicIpHistory.map((record, index) => (
                             <div key={index} className="bg-slate-800/50 p-3 rounded-lg border border-slate-700/50 flex justify-between items-center">
                                 <span className="font-mono text-blue-300 text-sm">{record.ip_address}</span>
-                                <span className="text-xs text-slate-500">{new Date(record.time).toLocaleString()}</span>
+                                <span className="text-xs text-slate-500">{ipHistoryDateFormatter.format(new Date(record.time))}</span>
                             </div>
                         ))}
                         {publicIpHistory.length === 0 && (
