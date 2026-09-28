@@ -199,11 +199,18 @@ const Dashboard = () => {
         fetchSpeedTestHistory();
 
         const interval = setInterval(() => {
+            if (document.hidden) return; // ⚡ Bolt: Skip polling when tab is inactive to save resources
             fetchHosts();
             fetchNetworkStatus();
         }, 60000);
-        const ipInterval = setInterval(fetchPublicIpHistory, 300000);
-        const speedInterval = setInterval(fetchSpeedTestHistory, 120000);
+        const ipInterval = setInterval(() => {
+            if (document.hidden) return;
+            fetchPublicIpHistory();
+        }, 300000);
+        const speedInterval = setInterval(() => {
+            if (document.hidden) return;
+            fetchSpeedTestHistory();
+        }, 120000);
 
         return () => {
             clearInterval(interval);
@@ -262,7 +269,10 @@ const Dashboard = () => {
     useEffect(() => {
         if (selectedHost) {
             fetchMetrics(selectedHost.id);
-            const interval = setInterval(() => fetchMetrics(selectedHost.id), 30000);
+            const interval = setInterval(() => {
+                if (document.hidden) return; // ⚡ Bolt: Skip metrics polling when tab is inactive
+                fetchMetrics(selectedHost.id);
+            }, 30000);
             return () => clearInterval(interval);
         }
     }, [selectedHost, timeRange, fetchMetrics]);
