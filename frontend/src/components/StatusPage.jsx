@@ -103,7 +103,7 @@ const StatusPage = () => {
             ))}
 
             {hosts.length === 0 && (
-                <div className="text-center text-slate-500 py-12">No hosts configured.</div>
+                <div className="text-center text-slate-500 py-12" aria-live="polite">No hosts configured.</div>
             )}
         </div>
     );
