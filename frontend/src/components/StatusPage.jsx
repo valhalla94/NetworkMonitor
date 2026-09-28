@@ -21,7 +21,10 @@ const StatusPage = () => {
 
     useEffect(() => {
         fetchData();
-        const interval = setInterval(fetchData, 30000);
+        const interval = setInterval(() => {
+            if (document.hidden) return; // ⚡ Bolt: Skip polling when tab is inactive to save resources
+            fetchData();
+        }, 30000);
         return () => clearInterval(interval);
     }, []);
 
