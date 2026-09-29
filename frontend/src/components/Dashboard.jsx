@@ -467,7 +467,7 @@ const Dashboard = () => {
             ))}
 
             {filteredHosts.length === 0 && hosts.length > 0 && (
-                <div className="text-center text-slate-500 py-12">
+                <div className="text-center text-slate-500 py-12" aria-live="polite">
                     <p className="mb-4">No hosts match your search/filter.</p>
                     <button
                         onClick={() => {
@@ -527,7 +527,7 @@ const Dashboard = () => {
                                     className="px-3 py-1.5 rounded-lg text-xs font-medium text-slate-400 hover:text-white bg-slate-800/50 flex items-center gap-1.5 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400">
                                     <Download className="w-3.5 h-3.5" aria-hidden="true" />CSV
                                 </button>
-                                <div className="flex items-center gap-1 bg-slate-900/50 p-1 rounded-xl border border-slate-700/50">
+                                <div className="flex items-center gap-1 bg-slate-900/50 p-1 rounded-xl border border-slate-700/50" role="group" aria-label="Time range selection">
                                     {['-1h', '-6h', '-24h', '-7d', '-30d', '-1y', '-2y'].map(v => (
                                         <button key={v} onClick={() => setTimeRange(v)}
                                             aria-label={`Show data for last ${v.replace('-', '')}`}
