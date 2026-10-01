@@ -20,9 +20,33 @@ const StatusPage = () => {
     };
 
     useEffect(() => {
-        fetchData();
-        const interval = setInterval(fetchData, 30000);
-        return () => clearInterval(interval);
+        let lastFetch = Date.now();
+
+        const doFetch = () => {
+            if (document.hidden) return;
+            fetchData();
+            lastFetch = Date.now();
+        };
+
+        doFetch(); // Initial fetch
+
+        const interval = setInterval(doFetch, 30000);
+
+        const handleVisibilityChange = () => {
+            if (!document.hidden) {
+                // If we've missed a poll while hidden, fetch immediately
+                if (Date.now() - lastFetch >= 30000) {
+                    doFetch();
+                }
+            }
+        };
+
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+
+        return () => {
+            clearInterval(interval);
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+        };
     }, []);
 
     // ⚡ Bolt: Memoize expensive host list grouping.
