@@ -20,9 +20,29 @@ const StatusPage = () => {
     };
 
     useEffect(() => {
-        fetchData();
-        const interval = setInterval(fetchData, 30000);
-        return () => clearInterval(interval);
+        // ⚡ Bolt: Suspend background polling when tab is inactive to save battery and backend load
+        let lastFetchTime = 0;
+
+        const doFetch = () => {
+            if (document.hidden) return;
+            lastFetchTime = Date.now();
+            fetchData();
+        };
+
+        doFetch();
+        const interval = setInterval(doFetch, 30000);
+
+        const handleVisibilityChange = () => {
+            if (!document.hidden && Date.now() - lastFetchTime > 30000) {
+                doFetch();
+            }
+        };
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+
+        return () => {
+            clearInterval(interval);
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+        };
     }, []);
 
     // ⚡ Bolt: Memoize expensive host list grouping.

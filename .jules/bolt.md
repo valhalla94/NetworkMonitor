@@ -48,3 +48,7 @@
 ## 2025-02-12 - Combine SQLite Transactions in High-Frequency Loops
 **Learning:** Found a performance bottleneck where the `ping_host` function in the background scheduler opened a database session and committed a transaction to insert a ping result, and then immediately opened another session and transaction to update the host's status. Since SQLite locks the entire database for writes, multiple rapid consecutive transactions increase lock contention and overhead in high-frequency background loops (like the scheduler polling every few seconds).
 **Action:** Always combine sequential insertions and updates into a single SQLAlchemy session and a single `db.commit()` block. This dramatically minimizes SQLite lock contention and database transaction overhead.
+
+## 2025-02-12 - Suspend Background Polling When Tab is Inactive
+**Learning:** Found a performance bottleneck where `setInterval` loops continuously fetched data (network status, metrics, history) even when the browser tab was hidden. This caused unnecessary backend database hits, network traffic, and client CPU/battery usage.
+**Action:** Add `if (document.hidden) return;` inside `setInterval` callbacks to suspend data fetching when the tab is inactive. Use the `visibilitychange` event listener to resume fetching immediately when the tab is re-focused if the polling interval has elapsed.
