@@ -193,22 +193,53 @@ const Dashboard = () => {
 
     // Initial data load + fallback polling (60s — SSE covers real-time updates)
     useEffect(() => {
-        fetchHosts();
-        fetchNetworkStatus();
-        fetchPublicIpHistory();
-        fetchSpeedTestHistory();
+        let lastFetchTime = 0;
+        let lastIpFetchTime = 0;
+        let lastSpeedFetchTime = 0;
 
-        const interval = setInterval(() => {
+        const fetchCore = () => {
+            if (document.hidden) return;
             fetchHosts();
             fetchNetworkStatus();
-        }, 60000);
-        const ipInterval = setInterval(fetchPublicIpHistory, 300000);
-        const speedInterval = setInterval(fetchSpeedTestHistory, 120000);
+            lastFetchTime = Date.now();
+        };
+
+        const fetchIp = () => {
+            if (document.hidden) return;
+            fetchPublicIpHistory();
+            lastIpFetchTime = Date.now();
+        };
+
+        const fetchSpeed = () => {
+            if (document.hidden) return;
+            fetchSpeedTestHistory();
+            lastSpeedFetchTime = Date.now();
+        };
+
+        const handleVisibilityChange = () => {
+            if (!document.hidden) {
+                const now = Date.now();
+                if (now - lastFetchTime > 60000) fetchCore();
+                if (now - lastIpFetchTime > 300000) fetchIp();
+                if (now - lastSpeedFetchTime > 120000) fetchSpeed();
+            }
+        };
+
+        fetchCore();
+        fetchIp();
+        fetchSpeed();
+
+        const interval = setInterval(fetchCore, 60000);
+        const ipInterval = setInterval(fetchIp, 300000);
+        const speedInterval = setInterval(fetchSpeed, 120000);
+
+        document.addEventListener('visibilitychange', handleVisibilityChange);
 
         return () => {
             clearInterval(interval);
             clearInterval(ipInterval);
             clearInterval(speedInterval);
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
         };
     }, [fetchHosts, fetchNetworkStatus, fetchPublicIpHistory, fetchSpeedTestHistory]);
 
@@ -261,9 +292,29 @@ const Dashboard = () => {
 
     useEffect(() => {
         if (selectedHost) {
-            fetchMetrics(selectedHost.id);
-            const interval = setInterval(() => fetchMetrics(selectedHost.id), 30000);
-            return () => clearInterval(interval);
+            let lastFetchTime = 0;
+            const pollIntervalMs = 30000;
+
+            const poll = () => {
+                if (document.hidden) return;
+                fetchMetrics(selectedHost.id);
+                lastFetchTime = Date.now();
+            };
+
+            const handleVisibilityChange = () => {
+                if (!document.hidden && Date.now() - lastFetchTime > pollIntervalMs) {
+                    poll();
+                }
+            };
+
+            poll(); // Initial fetch
+            const interval = setInterval(poll, pollIntervalMs);
+            document.addEventListener('visibilitychange', handleVisibilityChange);
+
+            return () => {
+                clearInterval(interval);
+                document.removeEventListener('visibilitychange', handleVisibilityChange);
+            };
         }
     }, [selectedHost, timeRange, fetchMetrics]);
 
