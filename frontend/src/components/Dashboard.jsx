@@ -467,7 +467,7 @@ const Dashboard = () => {
             ))}
 
             {filteredHosts.length === 0 && hosts.length > 0 && (
-                <div className="text-center text-slate-500 py-12">
+                <div className="text-center text-slate-500 py-12" aria-live="polite">
                     <p className="mb-4">No hosts match your search/filter.</p>
                     <button
                         onClick={() => {
