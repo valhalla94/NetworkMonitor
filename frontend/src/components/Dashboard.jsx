@@ -261,9 +261,32 @@ const Dashboard = () => {
 
     useEffect(() => {
         if (selectedHost) {
+            let lastFetchTime = Date.now();
             fetchMetrics(selectedHost.id);
-            const interval = setInterval(() => fetchMetrics(selectedHost.id), 30000);
-            return () => clearInterval(interval);
+
+            const fetchIfNotHidden = () => {
+                if (document.hidden) return;
+                lastFetchTime = Date.now();
+                fetchMetrics(selectedHost.id);
+            };
+
+            const interval = setInterval(fetchIfNotHidden, 30000);
+
+            const handleVisibilityChange = () => {
+                if (!document.hidden) {
+                    const now = Date.now();
+                    if (now - lastFetchTime > 30000) {
+                        lastFetchTime = now;
+                        fetchMetrics(selectedHost.id);
+                    }
+                }
+            };
+            document.addEventListener('visibilitychange', handleVisibilityChange);
+
+            return () => {
+                clearInterval(interval);
+                document.removeEventListener('visibilitychange', handleVisibilityChange);
+            };
         }
     }, [selectedHost, timeRange, fetchMetrics]);
 
