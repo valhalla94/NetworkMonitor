@@ -197,18 +197,44 @@ const Dashboard = () => {
         fetchNetworkStatus();
         fetchPublicIpHistory();
         fetchSpeedTestHistory();
+        let lastFetchTime = Date.now();
 
-        const interval = setInterval(() => {
+        const tickHostsStatus = () => {
+            if (document.hidden) return;
             fetchHosts();
             fetchNetworkStatus();
-        }, 60000);
-        const ipInterval = setInterval(fetchPublicIpHistory, 300000);
-        const speedInterval = setInterval(fetchSpeedTestHistory, 120000);
+            lastFetchTime = Date.now();
+        };
+
+        const tickIp = () => {
+            if (document.hidden) return;
+            fetchPublicIpHistory();
+        };
+
+        const tickSpeed = () => {
+            if (document.hidden) return;
+            fetchSpeedTestHistory();
+        };
+
+        const interval = setInterval(tickHostsStatus, 60000);
+        const ipInterval = setInterval(tickIp, 300000);
+        const speedInterval = setInterval(tickSpeed, 120000);
+
+        const handleVisibilityChange = () => {
+            if (!document.hidden) {
+                if (Date.now() - lastFetchTime > 60000) {
+                    tickHostsStatus();
+                }
+            }
+        };
+
+        document.addEventListener('visibilitychange', handleVisibilityChange);
 
         return () => {
             clearInterval(interval);
             clearInterval(ipInterval);
             clearInterval(speedInterval);
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
         };
     }, [fetchHosts, fetchNetworkStatus, fetchPublicIpHistory, fetchSpeedTestHistory]);
 
@@ -262,8 +288,31 @@ const Dashboard = () => {
     useEffect(() => {
         if (selectedHost) {
             fetchMetrics(selectedHost.id);
-            const interval = setInterval(() => fetchMetrics(selectedHost.id), 30000);
-            return () => clearInterval(interval);
+            let lastFetchTime = Date.now();
+
+            const tick = () => {
+                // ⚡ Bolt: Suspend data fetching when the browser tab is inactive to avoid unnecessary client resource usage and backend load.
+                if (document.hidden) return;
+                fetchMetrics(selectedHost.id);
+                lastFetchTime = Date.now();
+            };
+
+            const interval = setInterval(tick, 30000);
+
+            const handleVisibilityChange = () => {
+                if (!document.hidden) {
+                    if (Date.now() - lastFetchTime > 30000) {
+                        tick();
+                    }
+                }
+            };
+
+            document.addEventListener('visibilitychange', handleVisibilityChange);
+
+            return () => {
+                clearInterval(interval);
+                document.removeEventListener('visibilitychange', handleVisibilityChange);
+            };
         }
     }, [selectedHost, timeRange, fetchMetrics]);
 

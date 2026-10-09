@@ -21,8 +21,32 @@ const StatusPage = () => {
 
     useEffect(() => {
         fetchData();
-        const interval = setInterval(fetchData, 30000);
-        return () => clearInterval(interval);
+        let lastFetchTime = Date.now();
+
+        const tick = () => {
+            // ⚡ Bolt: Suspend data fetching when the browser tab is inactive to avoid unnecessary client resource usage and backend load.
+            if (document.hidden) return;
+            fetchData();
+            lastFetchTime = Date.now();
+        };
+
+        const interval = setInterval(tick, 30000);
+
+        const handleVisibilityChange = () => {
+            if (!document.hidden) {
+                // Immediately fetch if we missed a polling interval while hidden
+                if (Date.now() - lastFetchTime > 30000) {
+                    tick();
+                }
+            }
+        };
+
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+
+        return () => {
+            clearInterval(interval);
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+        };
     }, []);
 
     // ⚡ Bolt: Memoize expensive host list grouping.
