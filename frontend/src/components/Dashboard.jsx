@@ -198,17 +198,48 @@ const Dashboard = () => {
         fetchPublicIpHistory();
         fetchSpeedTestHistory();
 
-        const interval = setInterval(() => {
+        let lastGeneralFetchTime = Date.now();
+        let lastIpFetchTime = Date.now();
+        let lastSpeedFetchTime = Date.now();
+
+        const fetchGeneralWrapper = () => {
+            if (document.hidden) return;
             fetchHosts();
             fetchNetworkStatus();
-        }, 60000);
-        const ipInterval = setInterval(fetchPublicIpHistory, 300000);
-        const speedInterval = setInterval(fetchSpeedTestHistory, 120000);
+            lastGeneralFetchTime = Date.now();
+        };
+
+        const fetchIpWrapper = () => {
+            if (document.hidden) return;
+            fetchPublicIpHistory();
+            lastIpFetchTime = Date.now();
+        };
+
+        const fetchSpeedWrapper = () => {
+            if (document.hidden) return;
+            fetchSpeedTestHistory();
+            lastSpeedFetchTime = Date.now();
+        };
+
+        const interval = setInterval(fetchGeneralWrapper, 60000);
+        const ipInterval = setInterval(fetchIpWrapper, 300000);
+        const speedInterval = setInterval(fetchSpeedWrapper, 120000);
+
+        const handleVisibilityChange = () => {
+            if (!document.hidden) {
+                const now = Date.now();
+                if (now - lastGeneralFetchTime > 60000) fetchGeneralWrapper();
+                if (now - lastIpFetchTime > 300000) fetchIpWrapper();
+                if (now - lastSpeedFetchTime > 120000) fetchSpeedWrapper();
+            }
+        };
+        document.addEventListener('visibilitychange', handleVisibilityChange);
 
         return () => {
             clearInterval(interval);
             clearInterval(ipInterval);
             clearInterval(speedInterval);
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
         };
     }, [fetchHosts, fetchNetworkStatus, fetchPublicIpHistory, fetchSpeedTestHistory]);
 
@@ -262,8 +293,27 @@ const Dashboard = () => {
     useEffect(() => {
         if (selectedHost) {
             fetchMetrics(selectedHost.id);
-            const interval = setInterval(() => fetchMetrics(selectedHost.id), 30000);
-            return () => clearInterval(interval);
+            let lastFetchTime = Date.now();
+
+            const fetchWrapper = () => {
+                if (document.hidden) return;
+                fetchMetrics(selectedHost.id);
+                lastFetchTime = Date.now();
+            };
+
+            const interval = setInterval(fetchWrapper, 30000);
+
+            const handleVisibilityChange = () => {
+                if (!document.hidden && Date.now() - lastFetchTime > 30000) {
+                    fetchWrapper();
+                }
+            };
+            document.addEventListener('visibilitychange', handleVisibilityChange);
+
+            return () => {
+                clearInterval(interval);
+                document.removeEventListener('visibilitychange', handleVisibilityChange);
+            };
         }
     }, [selectedHost, timeRange, fetchMetrics]);
 
