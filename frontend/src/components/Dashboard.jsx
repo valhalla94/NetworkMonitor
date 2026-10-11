@@ -193,22 +193,67 @@ const Dashboard = () => {
 
     // Initial data load + fallback polling (60s — SSE covers real-time updates)
     useEffect(() => {
+        // ⚡ Bolt: Track last fetch times to throttle redundant API calls
+        // when a hidden tab regains visibility shortly after a scheduled fetch.
+        let lastFetchTime = Date.now();
+        let lastIpFetchTime = Date.now();
+        let lastSpeedFetchTime = Date.now();
+
         fetchHosts();
         fetchNetworkStatus();
         fetchPublicIpHistory();
         fetchSpeedTestHistory();
 
+        // ⚡ Bolt: Suspend background data fetching when the browser tab is inactive.
+        // Impact: Eliminates unnecessary CPU usage, battery drain, and backend load
+        // by skipping expensive polling cycles for users with inactive tabs.
         const interval = setInterval(() => {
+            if (document.hidden) return;
             fetchHosts();
             fetchNetworkStatus();
+            lastFetchTime = Date.now();
         }, 60000);
-        const ipInterval = setInterval(fetchPublicIpHistory, 300000);
-        const speedInterval = setInterval(fetchSpeedTestHistory, 120000);
+
+        const ipInterval = setInterval(() => {
+            if (document.hidden) return;
+            fetchPublicIpHistory();
+            lastIpFetchTime = Date.now();
+        }, 300000);
+
+        const speedInterval = setInterval(() => {
+            if (document.hidden) return;
+            fetchSpeedTestHistory();
+            lastSpeedFetchTime = Date.now();
+        }, 120000);
+
+        // ⚡ Bolt: Immediately fetch fresh data when an inactive tab becomes visible,
+        // but throttle based on elapsed time to prevent redundant calls.
+        const handleVisibilityChange = () => {
+            if (!document.hidden) {
+                const now = Date.now();
+                if (now - lastFetchTime > 60000) {
+                    fetchHosts();
+                    fetchNetworkStatus();
+                    lastFetchTime = now;
+                }
+                if (now - lastIpFetchTime > 300000) {
+                    fetchPublicIpHistory();
+                    lastIpFetchTime = now;
+                }
+                if (now - lastSpeedFetchTime > 120000) {
+                    fetchSpeedTestHistory();
+                    lastSpeedFetchTime = now;
+                }
+            }
+        };
+
+        document.addEventListener('visibilitychange', handleVisibilityChange);
 
         return () => {
             clearInterval(interval);
             clearInterval(ipInterval);
             clearInterval(speedInterval);
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
         };
     }, [fetchHosts, fetchNetworkStatus, fetchPublicIpHistory, fetchSpeedTestHistory]);
 
@@ -261,9 +306,31 @@ const Dashboard = () => {
 
     useEffect(() => {
         if (selectedHost) {
+            let lastFetchTime = Date.now();
             fetchMetrics(selectedHost.id);
-            const interval = setInterval(() => fetchMetrics(selectedHost.id), 30000);
-            return () => clearInterval(interval);
+
+            // ⚡ Bolt: Suspend background polling when tab is hidden.
+            const interval = setInterval(() => {
+                if (document.hidden) return;
+                fetchMetrics(selectedHost.id);
+                lastFetchTime = Date.now();
+            }, 30000);
+
+            const handleVisibilityChange = () => {
+                if (!document.hidden) {
+                    const now = Date.now();
+                    if (now - lastFetchTime > 30000) {
+                        fetchMetrics(selectedHost.id);
+                        lastFetchTime = now;
+                    }
+                }
+            };
+            document.addEventListener('visibilitychange', handleVisibilityChange);
+
+            return () => {
+                clearInterval(interval);
+                document.removeEventListener('visibilitychange', handleVisibilityChange);
+            };
         }
     }, [selectedHost, timeRange, fetchMetrics]);
 
