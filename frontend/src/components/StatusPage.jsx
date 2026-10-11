@@ -20,9 +20,35 @@ const StatusPage = () => {
     };
 
     useEffect(() => {
+        // ⚡ Bolt: Track last fetch times to throttle redundant API calls
+        let lastFetchTime = Date.now();
         fetchData();
-        const interval = setInterval(fetchData, 30000);
-        return () => clearInterval(interval);
+
+        // ⚡ Bolt: Suspend background data fetching when the browser tab is inactive.
+        // Impact: Eliminates unnecessary CPU usage, battery drain, and backend load.
+        const interval = setInterval(() => {
+            if (document.hidden) return;
+            fetchData();
+            lastFetchTime = Date.now();
+        }, 30000);
+
+        // ⚡ Bolt: Immediately fetch fresh data when an inactive tab becomes visible.
+        const handleVisibilityChange = () => {
+            if (!document.hidden) {
+                const now = Date.now();
+                if (now - lastFetchTime > 30000) {
+                    fetchData();
+                    lastFetchTime = now;
+                }
+            }
+        };
+
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+
+        return () => {
+            clearInterval(interval);
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+        };
     }, []);
 
     // ⚡ Bolt: Memoize expensive host list grouping.
