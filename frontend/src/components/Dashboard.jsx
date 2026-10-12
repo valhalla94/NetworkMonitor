@@ -445,6 +445,10 @@ const Dashboard = () => {
                 </div>
             </div>
 
+            <div aria-live="polite" className="sr-only">
+                {filteredHosts.length === 0 && hosts.length > 0 ? "No hosts match your search or filter." : `${filteredHosts.length} hosts found.`}
+            </div>
+
             {/* Host Groups */}
             {groupNames.map(groupName => (
                 <div key={groupName} className="mb-4">
