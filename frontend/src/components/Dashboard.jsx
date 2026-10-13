@@ -395,6 +395,11 @@ const Dashboard = () => {
                 </div>
             </div>
 
+            {/* Screen Reader Announcements */}
+            <div aria-live="polite" className="sr-only">
+                {(searchQuery || statusFilter !== 'all') ? `${filteredHosts.length} hosts found.` : ''}
+            </div>
+
             {/* Search + Filter bar */}
             <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
                 <div className="relative flex-1">
