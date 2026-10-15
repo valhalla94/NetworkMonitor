@@ -395,6 +395,10 @@ const Dashboard = () => {
                 </div>
             </div>
 
+            <div className="sr-only" aria-live="polite" aria-atomic="true">
+                {searchQuery || statusFilter !== 'all' ? `${filteredHosts.length} hosts found` : ''}
+            </div>
+
             {/* Search + Filter bar */}
             <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
                 <div className="relative flex-1">
@@ -470,6 +474,7 @@ const Dashboard = () => {
                 <div className="text-center text-slate-500 py-12">
                     <p className="mb-4">No hosts match your search/filter.</p>
                     <button
+                        type="button"
                         onClick={() => {
                             setSearchQuery('');
                             setStatusFilter('all');
