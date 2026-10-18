@@ -193,22 +193,63 @@ const Dashboard = () => {
 
     // Initial data load + fallback polling (60s — SSE covers real-time updates)
     useEffect(() => {
+        let lastFetchTime = Date.now();
+        let lastIpFetchTime = Date.now();
+        let lastSpeedFetchTime = Date.now();
+
         fetchHosts();
         fetchNetworkStatus();
         fetchPublicIpHistory();
         fetchSpeedTestHistory();
 
+        // ⚡ Bolt: Pause background polling when tab is inactive to save CPU, network, and backend load
         const interval = setInterval(() => {
+            if (document.hidden) return;
             fetchHosts();
             fetchNetworkStatus();
+            lastFetchTime = Date.now();
         }, 60000);
-        const ipInterval = setInterval(fetchPublicIpHistory, 300000);
-        const speedInterval = setInterval(fetchSpeedTestHistory, 120000);
+
+        const ipInterval = setInterval(() => {
+            if (document.hidden) return;
+            fetchPublicIpHistory();
+            lastIpFetchTime = Date.now();
+        }, 300000);
+
+        const speedInterval = setInterval(() => {
+            if (document.hidden) return;
+            fetchSpeedTestHistory();
+            lastSpeedFetchTime = Date.now();
+        }, 120000);
+
+        const handleVisibilityChange = () => {
+            // ⚡ Bolt: Immediately fetch on tab focus only if elapsed time exceeds the polling interval
+            // This prevents redundant requests when rapidly switching tabs
+            if (!document.hidden) {
+                const now = Date.now();
+                if (now - lastFetchTime > 60000) {
+                    fetchHosts();
+                    fetchNetworkStatus();
+                    lastFetchTime = now;
+                }
+                if (now - lastIpFetchTime > 300000) {
+                    fetchPublicIpHistory();
+                    lastIpFetchTime = now;
+                }
+                if (now - lastSpeedFetchTime > 120000) {
+                    fetchSpeedTestHistory();
+                    lastSpeedFetchTime = now;
+                }
+            }
+        };
+
+        document.addEventListener('visibilitychange', handleVisibilityChange);
 
         return () => {
             clearInterval(interval);
             clearInterval(ipInterval);
             clearInterval(speedInterval);
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
         };
     }, [fetchHosts, fetchNetworkStatus, fetchPublicIpHistory, fetchSpeedTestHistory]);
 
@@ -261,9 +302,30 @@ const Dashboard = () => {
 
     useEffect(() => {
         if (selectedHost) {
+            let lastFetchTime = Date.now();
             fetchMetrics(selectedHost.id);
-            const interval = setInterval(() => fetchMetrics(selectedHost.id), 30000);
-            return () => clearInterval(interval);
+
+            // ⚡ Bolt: Pause metrics background polling when tab is inactive
+            const interval = setInterval(() => {
+                if (document.hidden) return;
+                fetchMetrics(selectedHost.id);
+                lastFetchTime = Date.now();
+            }, 30000);
+
+            const handleVisibilityChange = () => {
+                // ⚡ Bolt: Immediately fetch on tab focus if missed an interval
+                if (!document.hidden && Date.now() - lastFetchTime > 30000) {
+                    fetchMetrics(selectedHost.id);
+                    lastFetchTime = Date.now();
+                }
+            };
+
+            document.addEventListener('visibilitychange', handleVisibilityChange);
+
+            return () => {
+                clearInterval(interval);
+                document.removeEventListener('visibilitychange', handleVisibilityChange);
+            };
         }
     }, [selectedHost, timeRange, fetchMetrics]);
 

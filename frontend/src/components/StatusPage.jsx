@@ -20,9 +20,30 @@ const StatusPage = () => {
     };
 
     useEffect(() => {
+        let lastFetchTime = Date.now();
         fetchData();
-        const interval = setInterval(fetchData, 30000);
-        return () => clearInterval(interval);
+
+        const interval = setInterval(() => {
+            // ⚡ Bolt: Pause background polling when tab is inactive to save resources
+            if (document.hidden) return;
+            fetchData();
+            lastFetchTime = Date.now();
+        }, 30000);
+
+        const handleVisibilityChange = () => {
+            // ⚡ Bolt: Fetch immediately on returning to the tab if the elapsed time exceeds the polling interval
+            if (!document.hidden && Date.now() - lastFetchTime > 30000) {
+                fetchData();
+                lastFetchTime = Date.now();
+            }
+        };
+
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+
+        return () => {
+            clearInterval(interval);
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+        };
     }, []);
 
     // ⚡ Bolt: Memoize expensive host list grouping.
