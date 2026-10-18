@@ -19,7 +19,7 @@ const SpeedTestCard = ({ speedTestHistory, isSpeedTestRunning, onRunSpeedTest })
                     <div className="p-2 rounded-full bg-violet-500/20 text-violet-400"><Gauge className="w-5 h-5" aria-hidden="true" /></div>
                     <h2 className="text-lg font-bold text-white">Internet Speed</h2>
                 </div>
-                <button onClick={onRunSpeedTest} disabled={isSpeedTestRunning}
+                <button type="button" onClick={onRunSpeedTest} disabled={isSpeedTestRunning}
                     aria-label={isSpeedTestRunning ? "Speed test running" : "Run speed test"}
                     className={`px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-all cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-400 ${isSpeedTestRunning ? 'bg-violet-500/10 text-violet-400' : 'bg-violet-600 hover:bg-violet-500 text-white'}`}>
                     {isSpeedTestRunning ? <><Loader2 className="w-3.5 h-3.5 animate-spin" aria-hidden="true" />Running...</> : <><Play className="w-3.5 h-3.5 fill-current" aria-hidden="true" />Run</>}
