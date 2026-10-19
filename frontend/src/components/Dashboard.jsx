@@ -198,17 +198,55 @@ const Dashboard = () => {
         fetchPublicIpHistory();
         fetchSpeedTestHistory();
 
+        let lastHostsFetch = Date.now();
+        let lastIpFetch = Date.now();
+        let lastSpeedFetch = Date.now();
+
         const interval = setInterval(() => {
+            if (document.hidden) return;
             fetchHosts();
             fetchNetworkStatus();
+            lastHostsFetch = Date.now();
         }, 60000);
-        const ipInterval = setInterval(fetchPublicIpHistory, 300000);
-        const speedInterval = setInterval(fetchSpeedTestHistory, 120000);
+
+        const ipInterval = setInterval(() => {
+            if (document.hidden) return;
+            fetchPublicIpHistory();
+            lastIpFetch = Date.now();
+        }, 300000);
+
+        const speedInterval = setInterval(() => {
+            if (document.hidden) return;
+            fetchSpeedTestHistory();
+            lastSpeedFetch = Date.now();
+        }, 120000);
+
+        const handleVisibilityChange = () => {
+            if (!document.hidden) {
+                const now = Date.now();
+                if (now - lastHostsFetch > 60000) {
+                    fetchHosts();
+                    fetchNetworkStatus();
+                    lastHostsFetch = now;
+                }
+                if (now - lastIpFetch > 300000) {
+                    fetchPublicIpHistory();
+                    lastIpFetch = now;
+                }
+                if (now - lastSpeedFetch > 120000) {
+                    fetchSpeedTestHistory();
+                    lastSpeedFetch = now;
+                }
+            }
+        };
+
+        document.addEventListener('visibilitychange', handleVisibilityChange);
 
         return () => {
             clearInterval(interval);
             clearInterval(ipInterval);
             clearInterval(speedInterval);
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
         };
     }, [fetchHosts, fetchNetworkStatus, fetchPublicIpHistory, fetchSpeedTestHistory]);
 
@@ -262,8 +300,29 @@ const Dashboard = () => {
     useEffect(() => {
         if (selectedHost) {
             fetchMetrics(selectedHost.id);
-            const interval = setInterval(() => fetchMetrics(selectedHost.id), 30000);
-            return () => clearInterval(interval);
+            let lastMetricsFetch = Date.now();
+
+            const interval = setInterval(() => {
+                if (document.hidden) return;
+                fetchMetrics(selectedHost.id);
+                lastMetricsFetch = Date.now();
+            }, 30000);
+
+            const handleVisibilityChange = () => {
+                if (!document.hidden) {
+                    const now = Date.now();
+                    if (now - lastMetricsFetch > 30000) {
+                        fetchMetrics(selectedHost.id);
+                        lastMetricsFetch = now;
+                    }
+                }
+            };
+            document.addEventListener('visibilitychange', handleVisibilityChange);
+
+            return () => {
+                clearInterval(interval);
+                document.removeEventListener('visibilitychange', handleVisibilityChange);
+            };
         }
     }, [selectedHost, timeRange, fetchMetrics]);
 
