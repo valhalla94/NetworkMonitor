@@ -20,9 +20,33 @@ const StatusPage = () => {
     };
 
     useEffect(() => {
+        let lastFetchTime = Date.now();
         fetchData();
-        const interval = setInterval(fetchData, 30000);
-        return () => clearInterval(interval);
+
+        // ⚡ Bolt: Suspend background polling intervals when the tab is inactive
+        // to save CPU, battery, and unnecessary backend API calls.
+        const tick = () => {
+            if (document.hidden) return;
+            fetchData();
+            lastFetchTime = Date.now();
+        };
+
+        const interval = setInterval(tick, 30000);
+
+        const handleVisibilityChange = () => {
+            // Immediately fetch fresh data when the tab becomes active again
+            // but throttle to prevent redundant calls if recently fetched
+            if (!document.hidden && Date.now() - lastFetchTime > 30000) {
+                tick();
+            }
+        };
+
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+
+        return () => {
+            clearInterval(interval);
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+        };
     }, []);
 
     // ⚡ Bolt: Memoize expensive host list grouping.
