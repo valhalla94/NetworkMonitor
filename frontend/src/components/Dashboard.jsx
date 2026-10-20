@@ -193,22 +193,58 @@ const Dashboard = () => {
 
     // Initial data load + fallback polling (60s — SSE covers real-time updates)
     useEffect(() => {
+        let lastMainFetch = Date.now();
+        let lastIpFetch = Date.now();
+        let lastSpeedFetch = Date.now();
+
         fetchHosts();
         fetchNetworkStatus();
         fetchPublicIpHistory();
         fetchSpeedTestHistory();
 
-        const interval = setInterval(() => {
+        // ⚡ Bolt: Suspend background polling intervals when the tab is inactive
+        // to save CPU, battery, and unnecessary backend API calls.
+        const mainTick = () => {
+            if (document.hidden) return;
             fetchHosts();
             fetchNetworkStatus();
-        }, 60000);
-        const ipInterval = setInterval(fetchPublicIpHistory, 300000);
-        const speedInterval = setInterval(fetchSpeedTestHistory, 120000);
+            lastMainFetch = Date.now();
+        };
+
+        const ipTick = () => {
+            if (document.hidden) return;
+            fetchPublicIpHistory();
+            lastIpFetch = Date.now();
+        };
+
+        const speedTick = () => {
+            if (document.hidden) return;
+            fetchSpeedTestHistory();
+            lastSpeedFetch = Date.now();
+        };
+
+        const interval = setInterval(mainTick, 60000);
+        const ipInterval = setInterval(ipTick, 300000);
+        const speedInterval = setInterval(speedTick, 120000);
+
+        const handleVisibilityChange = () => {
+            // Immediately fetch fresh data when the tab becomes active again
+            // but throttle to prevent redundant calls if recently fetched
+            if (!document.hidden) {
+                const now = Date.now();
+                if (now - lastMainFetch > 60000) mainTick();
+                if (now - lastIpFetch > 300000) ipTick();
+                if (now - lastSpeedFetch > 120000) speedTick();
+            }
+        };
+
+        document.addEventListener('visibilitychange', handleVisibilityChange);
 
         return () => {
             clearInterval(interval);
             clearInterval(ipInterval);
             clearInterval(speedInterval);
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
         };
     }, [fetchHosts, fetchNetworkStatus, fetchPublicIpHistory, fetchSpeedTestHistory]);
 
@@ -261,9 +297,33 @@ const Dashboard = () => {
 
     useEffect(() => {
         if (selectedHost) {
+            let lastMetricsFetch = Date.now();
             fetchMetrics(selectedHost.id);
-            const interval = setInterval(() => fetchMetrics(selectedHost.id), 30000);
-            return () => clearInterval(interval);
+
+            // ⚡ Bolt: Suspend background polling intervals when the tab is inactive
+            // to save CPU, battery, and unnecessary backend API calls.
+            const metricsTick = () => {
+                if (document.hidden) return;
+                fetchMetrics(selectedHost.id);
+                lastMetricsFetch = Date.now();
+            };
+
+            const interval = setInterval(metricsTick, 30000);
+
+            const handleVisibilityChange = () => {
+                // Immediately fetch fresh data when the tab becomes active again
+                // but throttle to prevent redundant calls if recently fetched
+                if (!document.hidden && Date.now() - lastMetricsFetch > 30000) {
+                    metricsTick();
+                }
+            };
+
+            document.addEventListener('visibilitychange', handleVisibilityChange);
+
+            return () => {
+                clearInterval(interval);
+                document.removeEventListener('visibilitychange', handleVisibilityChange);
+            };
         }
     }, [selectedHost, timeRange, fetchMetrics]);
 
