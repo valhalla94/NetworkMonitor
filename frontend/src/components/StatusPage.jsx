@@ -21,8 +21,27 @@ const StatusPage = () => {
 
     useEffect(() => {
         fetchData();
-        const interval = setInterval(fetchData, 30000);
-        return () => clearInterval(interval);
+        let lastFetchTime = Date.now();
+        // ⚡ Bolt: Suspend background polling when tab is inactive to save battery/server load
+        const interval = setInterval(() => {
+            if (document.hidden) return;
+            fetchData();
+            lastFetchTime = Date.now();
+        }, 30000);
+
+        // ⚡ Bolt: Immediately fetch on tab focus if polling interval elapsed while hidden
+        const handleVisibilityChange = () => {
+            if (!document.hidden && Date.now() - lastFetchTime > 30000) {
+                fetchData();
+                lastFetchTime = Date.now();
+            }
+        };
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+
+        return () => {
+            clearInterval(interval);
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+        };
     }, []);
 
     // ⚡ Bolt: Memoize expensive host list grouping.
