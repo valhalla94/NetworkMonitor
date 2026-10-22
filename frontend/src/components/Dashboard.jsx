@@ -198,17 +198,42 @@ const Dashboard = () => {
         fetchPublicIpHistory();
         fetchSpeedTestHistory();
 
+        let lastFetchTime = Date.now();
+
+        // ⚡ Bolt: Pause polling when tab is inactive to save resources
         const interval = setInterval(() => {
+            if (document.hidden) return;
             fetchHosts();
             fetchNetworkStatus();
+            lastFetchTime = Date.now();
         }, 60000);
-        const ipInterval = setInterval(fetchPublicIpHistory, 300000);
-        const speedInterval = setInterval(fetchSpeedTestHistory, 120000);
+
+        const ipInterval = setInterval(() => {
+            if (document.hidden) return;
+            fetchPublicIpHistory();
+        }, 300000);
+
+        const speedInterval = setInterval(() => {
+            if (document.hidden) return;
+            fetchSpeedTestHistory();
+        }, 120000);
+
+        const handleVisibilityChange = () => {
+            if (!document.hidden && Date.now() - lastFetchTime > 60000) {
+                fetchHosts();
+                fetchNetworkStatus();
+                // We're omitting ip and speed tests from visibility change force-fetch to avoid spamming
+                lastFetchTime = Date.now();
+            }
+        };
+
+        document.addEventListener('visibilitychange', handleVisibilityChange);
 
         return () => {
             clearInterval(interval);
             clearInterval(ipInterval);
             clearInterval(speedInterval);
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
         };
     }, [fetchHosts, fetchNetworkStatus, fetchPublicIpHistory, fetchSpeedTestHistory]);
 
