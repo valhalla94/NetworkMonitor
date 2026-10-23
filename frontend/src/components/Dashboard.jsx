@@ -198,14 +198,36 @@ const Dashboard = () => {
         fetchPublicIpHistory();
         fetchSpeedTestHistory();
 
+        let lastFetchTime = Date.now();
+
+        const handleVisibilityChange = () => {
+            if (!document.hidden && Date.now() - lastFetchTime > 60000) {
+                fetchHosts();
+                fetchNetworkStatus();
+                fetchPublicIpHistory();
+                fetchSpeedTestHistory();
+                lastFetchTime = Date.now();
+            }
+        };
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+
         const interval = setInterval(() => {
+            if (document.hidden) return;
             fetchHosts();
             fetchNetworkStatus();
+            lastFetchTime = Date.now();
         }, 60000);
-        const ipInterval = setInterval(fetchPublicIpHistory, 300000);
-        const speedInterval = setInterval(fetchSpeedTestHistory, 120000);
+        const ipInterval = setInterval(() => {
+            if (document.hidden) return;
+            fetchPublicIpHistory();
+        }, 300000);
+        const speedInterval = setInterval(() => {
+            if (document.hidden) return;
+            fetchSpeedTestHistory();
+        }, 120000);
 
         return () => {
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
             clearInterval(interval);
             clearInterval(ipInterval);
             clearInterval(speedInterval);
@@ -262,8 +284,26 @@ const Dashboard = () => {
     useEffect(() => {
         if (selectedHost) {
             fetchMetrics(selectedHost.id);
-            const interval = setInterval(() => fetchMetrics(selectedHost.id), 30000);
-            return () => clearInterval(interval);
+
+            let lastFetchTime = Date.now();
+            const handleVisibilityChange = () => {
+                if (!document.hidden && Date.now() - lastFetchTime > 30000) {
+                    fetchMetrics(selectedHost.id);
+                    lastFetchTime = Date.now();
+                }
+            };
+            document.addEventListener('visibilitychange', handleVisibilityChange);
+
+            const interval = setInterval(() => {
+                if (document.hidden) return;
+                fetchMetrics(selectedHost.id);
+                lastFetchTime = Date.now();
+            }, 30000);
+
+            return () => {
+                document.removeEventListener('visibilitychange', handleVisibilityChange);
+                clearInterval(interval);
+            };
         }
     }, [selectedHost, timeRange, fetchMetrics]);
 

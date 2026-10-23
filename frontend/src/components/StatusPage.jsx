@@ -21,8 +21,26 @@ const StatusPage = () => {
 
     useEffect(() => {
         fetchData();
-        const interval = setInterval(fetchData, 30000);
-        return () => clearInterval(interval);
+
+        let lastFetchTime = Date.now();
+        const handleVisibilityChange = () => {
+            if (!document.hidden && Date.now() - lastFetchTime > 30000) {
+                fetchData();
+                lastFetchTime = Date.now();
+            }
+        };
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+
+        const interval = setInterval(() => {
+            if (document.hidden) return;
+            fetchData();
+            lastFetchTime = Date.now();
+        }, 30000);
+
+        return () => {
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+            clearInterval(interval);
+        };
     }, []);
 
     // ⚡ Bolt: Memoize expensive host list grouping.
