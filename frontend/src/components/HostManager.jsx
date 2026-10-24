@@ -63,12 +63,12 @@ const HostRow = React.memo(({
                     <td className="p-3" />
                     <td className="p-3 text-right align-top">
                         <div className="flex gap-2 justify-end">
-                            <button onClick={() => onSaveEdit(host.id, editForm)}
+                            <button type="button" onClick={() => onSaveEdit(host.id, editForm)}
                                 aria-label="Save Edit"
                                 className="p-2 text-emerald-400 hover:bg-emerald-500/10 rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500" title="Save">
                                 <Check className="w-5 h-5" aria-hidden="true" />
                             </button>
-                            <button onClick={onCancelEdit}
+                            <button type="button" onClick={onCancelEdit}
                                 aria-label="Cancel Edit"
                                 className="p-2 text-slate-400 hover:bg-slate-500/10 rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400" title="Cancel">
                                 <X className="w-5 h-5" aria-hidden="true" />
@@ -119,12 +119,12 @@ const HostRow = React.memo(({
                     </td>
                     <td className="p-4 text-right">
                         <div className="flex gap-2 justify-end">
-                            <button onClick={() => onStartEdit(host)}
+                            <button type="button" onClick={() => onStartEdit(host)}
                                 aria-label="Edit Host"
                                 className="p-2 text-blue-400 hover:bg-blue-500/10 rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500" title="Edit">
                                 <Edit2 className="w-5 h-5" aria-hidden="true" />
                             </button>
-                            <button onClick={() => onDelete(host.id)}
+                            <button type="button" onClick={() => onDelete(host.id)}
                                 aria-label="Delete Host"
                                 className="p-2 text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-500" title="Delete">
                                 <Trash2 className="w-5 h-5" aria-hidden="true" />
@@ -215,6 +215,7 @@ const HostManager = ({ onHostAdded, hosts, onHostDeleted }) => {
             <div className="flex items-center justify-between">
                 <h2 className="text-2xl font-bold text-white">Managed Hosts</h2>
                 <button
+                    type="button"
                     onClick={() => setShowAddPanel(true)}
                     className="glass-button px-5 py-2.5 rounded-xl font-medium flex items-center gap-2"
                 >
@@ -235,6 +236,7 @@ const HostManager = ({ onHostAdded, hosts, onHostDeleted }) => {
                                     Add New Host
                                 </h3>
                                 <button
+                                    type="button"
                                     onClick={() => setShowAddPanel(false)}
                                     aria-label="Close"
                                     className="text-slate-400 hover:text-white transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded-lg p-1"
@@ -290,6 +292,7 @@ const HostManager = ({ onHostAdded, hosts, onHostDeleted }) => {
                                                 <p className="text-slate-400 text-sm max-w-sm">You haven't added any hosts to monitor yet. Get started by adding your first host.</p>
                                             </div>
                                             <button
+                                                type="button"
                                                 onClick={() => setShowAddPanel(true)}
                                                 className="glass-button px-6 py-2.5 rounded-xl font-medium flex items-center gap-2 mt-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
                                             >
