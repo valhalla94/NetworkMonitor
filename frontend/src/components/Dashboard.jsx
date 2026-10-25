@@ -197,18 +197,41 @@ const Dashboard = () => {
         fetchNetworkStatus();
         fetchPublicIpHistory();
         fetchSpeedTestHistory();
+        let lastFetchTime = Date.now();
 
         const interval = setInterval(() => {
+            if (document.hidden) return;
             fetchHosts();
             fetchNetworkStatus();
+            lastFetchTime = Date.now();
         }, 60000);
-        const ipInterval = setInterval(fetchPublicIpHistory, 300000);
-        const speedInterval = setInterval(fetchSpeedTestHistory, 120000);
+        const ipInterval = setInterval(() => {
+            if (document.hidden) return;
+            fetchPublicIpHistory();
+        }, 300000);
+        const speedInterval = setInterval(() => {
+            if (document.hidden) return;
+            fetchSpeedTestHistory();
+        }, 120000);
+
+        const handleVisibilityChange = () => {
+            if (!document.hidden && Date.now() - lastFetchTime > 60000) {
+                // ⚡ Bolt: Fetch fresh data immediately when tab becomes visible after being hidden
+                fetchHosts();
+                fetchNetworkStatus();
+                fetchPublicIpHistory();
+                fetchSpeedTestHistory();
+                lastFetchTime = Date.now();
+            }
+        };
+
+        document.addEventListener('visibilitychange', handleVisibilityChange);
 
         return () => {
             clearInterval(interval);
             clearInterval(ipInterval);
             clearInterval(speedInterval);
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
         };
     }, [fetchHosts, fetchNetworkStatus, fetchPublicIpHistory, fetchSpeedTestHistory]);
 
@@ -262,8 +285,28 @@ const Dashboard = () => {
     useEffect(() => {
         if (selectedHost) {
             fetchMetrics(selectedHost.id);
-            const interval = setInterval(() => fetchMetrics(selectedHost.id), 30000);
-            return () => clearInterval(interval);
+            let lastFetchTime = Date.now();
+
+            const interval = setInterval(() => {
+                if (document.hidden) return;
+                fetchMetrics(selectedHost.id);
+                lastFetchTime = Date.now();
+            }, 30000);
+
+            const handleVisibilityChange = () => {
+                if (!document.hidden && Date.now() - lastFetchTime > 30000) {
+                    // ⚡ Bolt: Fetch fresh data immediately when tab becomes visible after being hidden
+                    fetchMetrics(selectedHost.id);
+                    lastFetchTime = Date.now();
+                }
+            };
+
+            document.addEventListener('visibilitychange', handleVisibilityChange);
+
+            return () => {
+                clearInterval(interval);
+                document.removeEventListener('visibilitychange', handleVisibilityChange);
+            };
         }
     }, [selectedHost, timeRange, fetchMetrics]);
 
