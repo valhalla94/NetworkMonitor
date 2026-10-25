@@ -395,6 +395,11 @@ const Dashboard = () => {
                 </div>
             </div>
 
+            {/* Screen Reader Only Live Region for Search Results */}
+            <div aria-live="polite" className="sr-only">
+                {`${filteredHosts.length} host${filteredHosts.length === 1 ? '' : 's'} found`}
+            </div>
+
             {/* Search + Filter bar */}
             <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
                 <div className="relative flex-1">
