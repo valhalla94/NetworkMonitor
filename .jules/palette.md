@@ -4,3 +4,6 @@
 ## 2024-11-20 - Redundant Screen Reader Output on Decorative SVG Icons
 **Learning:** Purely decorative or redundant SVG icons (e.g., from `lucide-react`) within interactive elements that already have descriptive labels or text (like `aria-label="Save Edit"`) must be explicitly hidden from screen readers. Otherwise, screen readers may announce unnecessary technical SVG details or read 'image' redundantly.
 **Action:** Always add `aria-hidden="true"` to `lucide-react` icons that are purely visual or accompany descriptive text/aria-labels.
+## 2025-02-23 - Interactive Element Semantic Types
+**Learning:** Found multiple instances of `<button>` elements used for interactive UI actions (toggling charts, clearing filters, editing items) that did not explicitly have `type="button"`. Because the default HTML behavior for a `<button>` without a type is `type="submit"`, these can accidentally trigger form submissions or unwanted page reloads if nested inside or near forms.
+**Action:** Always verify that purely interactive `<button>` elements explicitly include `type="button"` to ensure safe and predictable client-side behavior.
