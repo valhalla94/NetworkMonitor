@@ -435,7 +435,7 @@ const Dashboard = () => {
                         { label: 'DOWN', value: 'down' },
                         { label: 'Maint.', value: 'maintenance' },
                     ].map(opt => (
-                        <button key={opt.value} onClick={() => setStatusFilter(opt.value)}
+                        <button type="button" key={opt.value} onClick={() => setStatusFilter(opt.value)}
                             aria-label={`Filter by ${opt.label} status`}
                             aria-pressed={statusFilter === opt.value}
                             className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${statusFilter === opt.value ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}>
@@ -443,6 +443,10 @@ const Dashboard = () => {
                         </button>
                     ))}
                 </div>
+            </div>
+
+            <div className="sr-only" aria-live="polite">
+                Showing {filteredHosts.length} of {hosts.length} hosts.
             </div>
 
             {/* Host Groups */}
@@ -470,6 +474,7 @@ const Dashboard = () => {
                 <div className="text-center text-slate-500 py-12">
                     <p className="mb-4">No hosts match your search/filter.</p>
                     <button
+                        type="button"
                         onClick={() => {
                             setSearchQuery('');
                             setStatusFilter('all');
