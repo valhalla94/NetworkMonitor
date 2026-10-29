@@ -4,3 +4,6 @@
 ## 2024-11-20 - Redundant Screen Reader Output on Decorative SVG Icons
 **Learning:** Purely decorative or redundant SVG icons (e.g., from `lucide-react`) within interactive elements that already have descriptive labels or text (like `aria-label="Save Edit"`) must be explicitly hidden from screen readers. Otherwise, screen readers may announce unnecessary technical SVG details or read 'image' redundantly.
 **Action:** Always add `aria-hidden="true"` to `lucide-react` icons that are purely visual or accompany descriptive text/aria-labels.
+## 2024-11-21 - Accessible Empty States
+**Learning:** When dynamic frontend searches or filters result in zero matches, visually rendering an empty state message (e.g., "No hosts match") is insufficient for screen readers. Users navigating with a keyboard or screen reader may not realize the list has been updated and is now empty unless the change is actively announced.
+**Action:** Always add `aria-live="polite"` to the container rendering dynamic empty state messages so that screen readers announce the filter outcome without interrupting the user's current flow.
