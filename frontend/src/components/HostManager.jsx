@@ -280,7 +280,7 @@ const HostManager = ({ onHostAdded, hosts, onHostDeleted }) => {
                         <tbody className="divide-y divide-slate-700/50">
                             {hosts.length === 0 ? (
                                 <tr>
-                                    <td colSpan="6" className="p-12">
+                                    <td colSpan="6" className="p-12" aria-live="polite">
                                         <div className="flex flex-col items-center justify-center space-y-4">
                                             <div className="w-16 h-16 rounded-2xl bg-blue-500/10 flex items-center justify-center">
                                                 <Globe className="w-8 h-8 text-blue-400" aria-hidden="true" />
