@@ -4,3 +4,6 @@
 ## 2024-11-20 - Redundant Screen Reader Output on Decorative SVG Icons
 **Learning:** Purely decorative or redundant SVG icons (e.g., from `lucide-react`) within interactive elements that already have descriptive labels or text (like `aria-label="Save Edit"`) must be explicitly hidden from screen readers. Otherwise, screen readers may announce unnecessary technical SVG details or read 'image' redundantly.
 **Action:** Always add `aria-hidden="true"` to `lucide-react` icons that are purely visual or accompany descriptive text/aria-labels.
+## 2026-10-29 - Screen Reader Feedback for Dynamic Results
+**Learning:** Found that when filtering/searching a large list of hosts on the dashboard, screen readers do not automatically announce how many results were found, leaving users in the dark.
+**Action:** Always include a visually hidden (`.sr-only`) `aria-live="polite"` region that dynamically announces the result count whenever list filters or search queries change.
