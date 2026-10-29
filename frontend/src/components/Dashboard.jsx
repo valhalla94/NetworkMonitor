@@ -478,7 +478,7 @@ const Dashboard = () => {
                         { label: 'DOWN', value: 'down' },
                         { label: 'Maint.', value: 'maintenance' },
                     ].map(opt => (
-                        <button key={opt.value} onClick={() => setStatusFilter(opt.value)}
+                        <button type="button" key={opt.value} onClick={() => setStatusFilter(opt.value)}
                             aria-label={`Filter by ${opt.label} status`}
                             aria-pressed={statusFilter === opt.value}
                             className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${statusFilter === opt.value ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}>
@@ -512,7 +512,7 @@ const Dashboard = () => {
             {filteredHosts.length === 0 && hosts.length > 0 && (
                 <div className="text-center text-slate-500 py-12">
                     <p className="mb-4">No hosts match your search/filter.</p>
-                    <button
+                    <button type="button"
                         onClick={() => {
                             setSearchQuery('');
                             setStatusFilter('all');
@@ -552,27 +552,27 @@ const Dashboard = () => {
                             </div>
                             <div className="flex items-center gap-2 flex-wrap">
                                 <div className="flex items-center gap-1 bg-slate-900/50 p-1 rounded-xl border border-slate-700/50" role="group" aria-label="Chart type toggle">
-                                    <button onClick={() => setShowUptimeChart(false)}
+                                    <button type="button" onClick={() => setShowUptimeChart(false)}
                                         aria-label="Show latency chart"
                                         aria-pressed={!showUptimeChart}
                                         className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 ${!showUptimeChart ? 'bg-emerald-600 text-white shadow-lg' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}>
                                         Latency
                                     </button>
-                                    <button onClick={() => setShowUptimeChart(true)}
+                                    <button type="button" onClick={() => setShowUptimeChart(true)}
                                         aria-label="Show uptime chart"
                                         aria-pressed={showUptimeChart}
                                         className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 ${showUptimeChart ? 'bg-emerald-600 text-white shadow-lg' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}>
                                         Uptime
                                     </button>
                                 </div>
-                                <button onClick={handleExportCSV}
+                                <button type="button" onClick={handleExportCSV}
                                     aria-label="Export data to CSV"
                                     className="px-3 py-1.5 rounded-lg text-xs font-medium text-slate-400 hover:text-white bg-slate-800/50 flex items-center gap-1.5 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400">
                                     <Download className="w-3.5 h-3.5" aria-hidden="true" />CSV
                                 </button>
                                 <div className="flex items-center gap-1 bg-slate-900/50 p-1 rounded-xl border border-slate-700/50">
                                     {['-1h', '-6h', '-24h', '-7d', '-30d', '-1y', '-2y'].map(v => (
-                                        <button key={v} onClick={() => setTimeRange(v)}
+                                        <button type="button" key={v} onClick={() => setTimeRange(v)}
                                             aria-label={`Show data for last ${v.replace('-', '')}`}
                                             aria-pressed={timeRange === v}
                                             className={`px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${timeRange === v ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}>
