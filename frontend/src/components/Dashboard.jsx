@@ -438,6 +438,11 @@ const Dashboard = () => {
                 </div>
             </div>
 
+            {/* Screen reader announcement for dynamic search/filter results */}
+            <div className="sr-only" aria-live="polite">
+                {`Showing ${filteredHosts.length} of ${hosts.length} hosts.`}
+            </div>
+
             {/* Search + Filter bar */}
             <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
                 <div className="relative flex-1">
