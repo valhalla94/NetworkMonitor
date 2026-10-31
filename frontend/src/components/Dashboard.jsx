@@ -198,30 +198,45 @@ const Dashboard = () => {
         fetchPublicIpHistory();
         fetchSpeedTestHistory();
         let lastFetchTime = Date.now();
+        let lastIpFetchTime = Date.now();
+        let lastSpeedFetchTime = Date.now();
 
         const interval = setInterval(() => {
             if (document.hidden) return;
+            if (Date.now() - lastFetchTime < 55000) return;
             fetchHosts();
             fetchNetworkStatus();
             lastFetchTime = Date.now();
         }, 60000);
         const ipInterval = setInterval(() => {
             if (document.hidden) return;
+            if (Date.now() - lastIpFetchTime < 295000) return;
             fetchPublicIpHistory();
+            lastIpFetchTime = Date.now();
         }, 300000);
         const speedInterval = setInterval(() => {
             if (document.hidden) return;
+            if (Date.now() - lastSpeedFetchTime < 115000) return;
             fetchSpeedTestHistory();
+            lastSpeedFetchTime = Date.now();
         }, 120000);
 
         const handleVisibilityChange = () => {
-            if (!document.hidden && Date.now() - lastFetchTime > 60000) {
+            if (!document.hidden) {
                 // ⚡ Bolt: Fetch fresh data immediately when tab becomes visible after being hidden
-                fetchHosts();
-                fetchNetworkStatus();
-                fetchPublicIpHistory();
-                fetchSpeedTestHistory();
-                lastFetchTime = Date.now();
+                if (Date.now() - lastFetchTime > 60000) {
+                    fetchHosts();
+                    fetchNetworkStatus();
+                    lastFetchTime = Date.now();
+                }
+                if (Date.now() - lastIpFetchTime > 300000) {
+                    fetchPublicIpHistory();
+                    lastIpFetchTime = Date.now();
+                }
+                if (Date.now() - lastSpeedFetchTime > 120000) {
+                    fetchSpeedTestHistory();
+                    lastSpeedFetchTime = Date.now();
+                }
             }
         };
 
@@ -289,6 +304,7 @@ const Dashboard = () => {
 
             const interval = setInterval(() => {
                 if (document.hidden) return;
+                if (Date.now() - lastFetchTime < 25000) return;
                 fetchMetrics(selectedHost.id);
                 lastFetchTime = Date.now();
             }, 30000);
