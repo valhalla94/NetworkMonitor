@@ -35,6 +35,7 @@ const PublicIpCard = ({ publicIpHistory, ipStats }) => {
                 </div>
                 {hasHistory && (
                     <button
+                        type="button"
                         onClick={handleCopy}
                         className="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-blue-500/20 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400"
                         aria-label={copied ? "IP copied to clipboard" : "Copy IP to clipboard"}
