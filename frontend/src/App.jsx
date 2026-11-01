@@ -41,6 +41,7 @@ function App() {
                     <span className="hidden sm:inline">Status</span>
                   </Link>
                   <button
+                    type="button"
                     onClick={() => setDark(d => !d)}
                     className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800/50 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
                     title={dark ? 'Switch to light mode' : 'Switch to dark mode'}
