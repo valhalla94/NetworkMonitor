@@ -25,12 +25,13 @@ const StatusPage = () => {
 
         const interval = setInterval(() => {
             if (document.hidden) return;
+            if (Date.now() - lastFetchTime < 30000 - 5000) return;
             fetchData();
             lastFetchTime = Date.now();
         }, 30000);
 
         const handleVisibilityChange = () => {
-            if (!document.hidden && Date.now() - lastFetchTime > 30000) {
+            if (!document.hidden && Date.now() - lastFetchTime > 30000 - 5000) {
                 // ⚡ Bolt: Fetch fresh data immediately when tab becomes visible after being hidden
                 fetchData();
                 lastFetchTime = Date.now();
