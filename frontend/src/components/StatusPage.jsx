@@ -25,6 +25,7 @@ const StatusPage = () => {
 
         const interval = setInterval(() => {
             if (document.hidden) return;
+            if (Date.now() - lastFetchTime < 25000) return;
             fetchData();
             lastFetchTime = Date.now();
         }, 30000);
