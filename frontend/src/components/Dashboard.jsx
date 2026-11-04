@@ -438,6 +438,10 @@ const Dashboard = () => {
                 </div>
             </div>
 
+            <div className="sr-only" aria-live="polite">
+                {filteredHosts.length} {filteredHosts.length === 1 ? 'host' : 'hosts'} found
+            </div>
+
             {/* Search + Filter bar */}
             <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
                 <div className="relative flex-1">
