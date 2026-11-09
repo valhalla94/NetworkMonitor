@@ -52,3 +52,7 @@
 ## 2026-10-25 - Suspend background polling when tab is inactive
 **Learning:** Found a performance bottleneck where `setInterval` background polling continued to run and fetch data (hosts, metrics, network status) even when the browser tab was inactive or hidden. This unnecessarily consumed client resources (battery, CPU), caused unneeded main thread work, and put redundant load on the backend.
 **Action:** Always add `if (document.hidden) return;` inside background polling intervals (like `setInterval`) to suspend data fetching when the browser tab is inactive. Attach a `visibilitychange` event listener to fetch fresh data when `!document.hidden`, but throttle this by checking if the elapsed time since the last fetch exceeds the polling interval to avoid redundant API calls. Initialize the `lastFetchTime` tracker to `Date.now()` when the initial fetch happens before setting up the interval.
+
+## 2025-02-12 - Fix redundant polling and missed intervals
+**Learning:** Using a single shared lastFetchTime for multiple intervals caused intervals to skip execution if another updated the shared timestamp. Also, interval callbacks didn't verify elapsed time, leading to immediate double-fetches after a visibility catch-up.
+**Action:** Track elapsed time separately for each interval, and add elapsed time checks (with a small jitter buffer) inside the interval callback itself to prevent redundant fetches after catching up from visibility changes.
