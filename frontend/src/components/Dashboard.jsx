@@ -488,6 +488,10 @@ const Dashboard = () => {
                 </div>
             </div>
 
+            <div className="sr-only" aria-live="polite">
+                {searchQuery || statusFilter !== 'all' ? `Showing ${filteredHosts.length} hosts.` : ''}
+            </div>
+
             {/* Host Groups */}
             {groupNames.map(groupName => (
                 <div key={groupName} className="mb-4">
