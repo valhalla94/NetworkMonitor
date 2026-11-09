@@ -398,6 +398,9 @@ const Dashboard = () => {
 
     return (
         <div className="space-y-8 animate-in fade-in duration-500">
+            <div className="sr-only" aria-live="polite">
+                {filteredHosts.length} {filteredHosts.length === 1 ? 'host' : 'hosts'} found
+            </div>
             {/* Top row: Status + IP */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <NetworkStatusBanner networkStatus={networkStatus} />
